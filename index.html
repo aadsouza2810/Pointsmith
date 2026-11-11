@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Points Value Finder</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Pointsmith</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -210,7 +210,7 @@ nav#tabs svg{width:17px;height:17px;flex:none}
 <div class="wrap">
   <header>
     <div>
-      <h1>Points Value Finder</h1>
+      <h1>Pointsmith</h1>
       <p class="sub">Where each point is worth the most, in ₹ per point.</p>
     </div>
     <div class="head-right">
@@ -438,7 +438,7 @@ nav#tabs svg{width:17px;height:17px;flex:none}
     <div class="backup">
       <h2 style="font-size:1rem">Data feed for the Refresh button</h2>
       <p class="note" style="margin:0">The Refresh data button at the top checks this web address for a newer update file. Paste the link to a hosted update file here. Leave it empty to refresh by hand with the steps above.</p>
-      <div class="row"><input id="feedUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…/points-value-feed.json" aria-label="Data feed address" style="flex:1 1 240px;min-width:0;font:500 .9rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--bg);color:var(--fg)"><button class="btn" id="feedSave" type="button">Save address</button></div>
+      <div class="row"><input id="feedUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…/pointsmith-feed.json" aria-label="Data feed address" style="flex:1 1 240px;min-width:0;font:500 .9rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--bg);color:var(--fg)"><button class="btn" id="feedSave" type="button">Save address</button></div>
       <div class="confirm" id="feedMsg" aria-live="polite"></div>
     </div>
     <div class="backup">
@@ -1505,7 +1505,7 @@ const cleanStr = (s, n = 200) => String(s == null ? '' : s).replace(/[<>"]/g, ''
 const isNum = v => typeof v === 'number' && isFinite(v) && v >= 0;
 const backupPayload = (maxAudit) => ({app:BK_APP, version:2, exported:nowIST(), state:{userName:state.userName, balances:state.balances, cards:state.cards, programs:state.programs, cardExp:state.cardExp, cashRef:state.cashRef, trips:state.trips, preferHeld:state.preferHeld, options:state.options, miles:state.miles, awards:state.awards, deals:state.deals, dealsChecked:state.dealsChecked, packAwards:state.packAwards, audit:maxAudit ? state.audit.slice(0, maxAudit) : state.audit}});
 async function saveBackup(){
-  const text = JSON.stringify(backupPayload(), null, 2), name = 'points-value-backup-' + today() + '.json';
+  const text = JSON.stringify(backupPayload(), null, 2), name = 'pointsmith-backup-' + today() + '.json';
   const msg = document.getElementById('bkMsg'), ta = document.getElementById('bkText');
   let dl = null;
   try{ dl = window.claude ? await window.claude.use('downloads') : null; }catch(e){ dl = null; }
@@ -1571,7 +1571,7 @@ document.getElementById('bkFile').onchange = e => {
   r.onerror = () => { msg.textContent = 'Could not read that file.'; };
   r.onload = () => {
     let parsed;
-    try{ parsed = parseBackup(String(r.result)); }catch(err){ msg.textContent = 'That file is not a Points Value Finder backup. Choose a file saved from this page.'; return; }
+    try{ parsed = parseBackup(String(r.result)); }catch(err){ msg.textContent = 'That file is not a Pointsmith backup. Choose a file saved from this page.'; return; }
     msg.innerHTML = 'Replace your current data with this backup (' + parsed.audit.length + ' audit entries)? <button class="btn danger" id="bkYes" type="button">Restore</button> <button class="btn" id="bkNo" type="button">Cancel</button>';
     document.getElementById('bkNo').onclick = () => { msg.textContent = ''; };
     document.getElementById('bkYes').onclick = () => {
@@ -1796,7 +1796,7 @@ document.getElementById('uFile').onchange = e => {
   r.readAsText(f);
 };
 document.getElementById('uSave').onclick = () => {
-  const name = 'points-value-update-' + today() + '.json';
+  const name = 'pointsmith-update-' + today() + '.json';
   if(saveTextFile(name, JSON.stringify(buildPack(), null, 2), document.getElementById('uSaveMsg'), document.getElementById('uOut'))){ audit('EXPORT', 'Update', 'File', '—', name); renderAudit(); toast('Update file downloaded'); }
 };
 document.getElementById('sCopy').onclick = () => {
@@ -1859,7 +1859,7 @@ function renderWallet(){
 }
 
 /* refresh button: pulls an update file from a data feed address */
-const DEFAULT_FEED = 'https://raw.githubusercontent.com/aadsouza2810/Pointsmith/main/points-value-feed.json';
+const DEFAULT_FEED = 'https://raw.githubusercontent.com/aadsouza2810/Pointsmith/main/pointsmith-feed.json';
 const feedNow = () => safeUrl(state.feedUrl) || DEFAULT_FEED;
 function refreshNote(html){ const m = document.getElementById('refreshMsg'); m.innerHTML = html; m.hidden = !html; }
 async function refreshData(){
