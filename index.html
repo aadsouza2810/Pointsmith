@@ -2037,6 +2037,22 @@ async function refreshData(){
   toast(plan.ch.length + ' change' + (plan.ch.length > 1 ? 's' : '') + ' found. Review and apply');
 }
 document.getElementById('refreshBtn').onclick = refreshData;
+/* once a day, quietly look for newer data and offer a review. Nothing is applied until you confirm. */
+async function autoCheckFeed(){
+  try{
+    const k = 'pm-feed-check'; let last = 0; try{ last = +localStorage.getItem(k) || 0; }catch(e){}
+    if(Date.now() - last < 20 * 36e5 || navigator.onLine === false) return;
+    const url = feedNow(); if(!url) return;
+    const r = await fetch(url, {cache:'no-store', credentials:'omit'}); if(!r.ok) return;
+    const text = await r.text(); if(text.length > 2e6) return;
+    try{ localStorage.setItem(k, String(Date.now())); }catch(e){}
+    const pack = sanitizePack(parseLoose(text)), plan = planPack(pack);
+    if(!plan.ch.length){ plan.quiet.forEach(f => f()); save(); renderAll(); return; }
+    refreshNote('<span>New data is available (' + plan.ch.length + ' change' + (plan.ch.length > 1 ? 's' : '') + ', dated ' + esc(pack.generated) + ').</span><button class="btn primary" type="button" id="rfReview">Review</button>');
+    document.getElementById('rfReview').onclick = () => { refreshNote(''); showView('settings', 'update'); showPackPreview(text); };
+  }catch(e){}
+}
+setTimeout(autoCheckFeed, 2500);
 document.getElementById('feedUrl').value = state.feedUrl || '';
 document.getElementById('feedSave').onclick = () => {
   const raw = document.getElementById('feedUrl').value.trim(), msg = document.getElementById('feedMsg');
