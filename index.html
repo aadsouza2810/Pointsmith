@@ -503,9 +503,11 @@ nav#tabs svg{width:17px;height:17px;flex:none}
     <div class="backup">
       <h2>Backup and restore</h2>
       <p class="note" style="margin:0" id="syncNote">Saved in this browser only. Use Save backup to keep a copy, for example in your Google Drive or OneDrive.</p>
-      <p class="note" style="margin:0">A backup file is a second copy you hold yourself, and also moves your data to someone else's device.</p>
+      <p class="note" style="margin:0">A backup file is a private copy you hold yourself. Use it to keep your data safe, or to move it to your other phone or laptop. The file goes only where you send it.</p>
+      <p class="note" style="margin:0" id="bkLast"></p>
       <div class="row">
-        <button class="btn primary" id="bkSave" type="button">Save backup</button>
+        <button class="btn primary" id="bkSend" type="button">Send to my other device</button>
+        <button class="btn" id="bkSave" type="button">Save backup</button>
         <button class="btn" id="bkPick" type="button">Restore from file</button>
         <input id="bkFile" type="file" accept=".json,application/json" hidden>
       </div>
@@ -1446,7 +1448,7 @@ function renderCardChips(){
 }
 function refreshAll(){
   document.getElementById('userName').textContent = state.userName;
-  renderCardChips(); renderBalances(); renderExample(); renderFilter(); renderBest(); renderCalcSelect(); renderCalc(); renderPrograms(); renderMiles(); renderLinks(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit();
+  renderCardChips(); renderBalances(); renderExample(); renderFilter(); renderBest(); renderCalcSelect(); renderCalc(); renderPrograms(); renderMiles(); renderLinks(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit(); renderBackupNote(); renderExpiry();
 }
 
 /* programs tab */
@@ -1512,17 +1514,39 @@ async function saveBackup(){
   if(dl){
     try{
       await dl.save({filename:name, data:text});
-      audit('EXPORT', 'Backup', 'File', '—', name); renderAudit();
+      audit('EXPORT', 'Backup', 'File', '—', name); renderAudit(); renderBackupNote(); renderExpiry();
       ta.hidden = true; msg.textContent = ''; toast('Backup saved'); return;
     }catch(e){ if(e && e.code === 'declined') return; }
   }
   try{
     const url = URL.createObjectURL(new Blob([text], {type:'application/json'})), a = document.createElement('a');
     a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
-    audit('EXPORT', 'Backup', 'File', '—', name); renderAudit(); ta.hidden = true; msg.textContent = ''; toast('Backup downloaded'); return;
+    audit('EXPORT', 'Backup', 'File', '—', name); renderAudit(); renderBackupNote(); renderExpiry(); ta.hidden = true; msg.textContent = ''; toast('Backup downloaded'); return;
   }catch(e){}
   ta.value = text; ta.hidden = false; ta.select();
   msg.textContent = 'File saving is not available here. Copy the text below into a file named ' + name + '.';
+}
+function lastBackup(){
+  const e = state.audit.find(x => x.action === 'EXPORT' && x.record === 'Backup');
+  if(!e || !/^\d{4}-\d{2}-\d{2}/.test(e.ts)) return null;
+  return {date:e.ts.slice(0,10), days:Math.max(0, -daysTo(e.ts.slice(0,10)))};
+}
+function renderBackupNote(){
+  const el = document.getElementById('bkLast'); if(!el) return;
+  const b = lastBackup();
+  el.textContent = b ? 'Last backup: ' + dmy(b.date) + (b.days ? ' (' + b.days + ' day' + (b.days === 1 ? '' : 's') + ' ago).' : ' (today).') : 'You have not saved a backup yet.';
+}
+async function sendBackup(){
+  const text = JSON.stringify(backupPayload(), null, 2), name = 'pointsmith-backup-' + today() + '.json';
+  try{
+    const f = new File([text], name, {type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[f]}) && navigator.share){
+      await navigator.share({files:[f], title:'Pointsmith data'});
+      audit('EXPORT', 'Backup', 'Sent', '—', name); renderAudit(); renderBackupNote(); renderExpiry(); toast('Data sent'); return;
+    }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  document.getElementById('bkMsg').textContent = 'Sharing is not available here, so a backup file was saved instead. Open it on your other device with Restore from file.';
+  await saveBackup();
 }
 function parseBackup(text){
   const b = JSON.parse(text);
@@ -1561,6 +1585,7 @@ function parseBackup(text){
   return out;
 }
 document.getElementById('bkSave').onclick = saveBackup;
+document.getElementById('bkSend').onclick = sendBackup;
 document.getElementById('bkPick').onclick = () => document.getElementById('bkFile').click();
 document.getElementById('bkFile').onchange = e => {
   const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -1572,12 +1597,12 @@ document.getElementById('bkFile').onchange = e => {
   r.onload = () => {
     let parsed;
     try{ parsed = parseBackup(String(r.result)); }catch(err){ msg.textContent = 'That file is not a Pointsmith backup. Choose a file saved from this page.'; return; }
-    msg.innerHTML = 'Replace your current data with this backup (' + parsed.audit.length + ' audit entries)? <button class="btn danger" id="bkYes" type="button">Restore</button> <button class="btn" id="bkNo" type="button">Cancel</button>';
+    msg.innerHTML = 'Found ' + Object.values(parsed.cards).filter(Boolean).length + ' cards, ' + parsed.trips.length + ' trip' + (parsed.trips.length === 1 ? '' : 's') + ' and ' + parsed.audit.length + ' audit entries. Replace the data on this device? <button class="btn danger" id="bkYes" type="button">Yes, replace</button> <button class="btn" id="bkNo" type="button">Cancel</button>';
     document.getElementById('bkNo').onclick = () => { msg.textContent = ''; };
     document.getElementById('bkYes').onclick = () => {
       Object.assign(state, parsed, {example:false});
       audit('IMPORT', 'Backup', 'File', '—', cleanStr(f.name, 80));
-      msg.textContent = ''; refreshAll(); renderRates(); toast('Backup restored');
+      msg.textContent = ''; refreshAll(); renderRates(); renderBackupNote(); renderExpiry(); toast('Backup restored');
     };
   };
   r.readAsText(f);
@@ -1829,6 +1854,14 @@ function renderExpiry(){
   const soon = expiryList().filter(x => x.d <= 90);
   el.innerHTML = soon.map(x => `<div class="exp-alert ${x.d <= 30 ? 'poor' : ''}"><span><b>${esc(x.name)}</b>: ${pts(x.bal)} ${esc(x.unit)} ${whenText(x.d)} (${esc(dmy(x.exp))})${x.val == null ? '' : ', worth about ' + inr(x.bal * x.val)}. ${x.type === 'Card' ? 'Redeem or transfer them before then. Check the card issuer\'s rules.' : 'Check the program\'s rules on keeping points alive.'}</span>${x.type === 'Airline' ? '<button class="btn" type="button" data-plan>Plan a trip</button>' : ''}</div>`).join('');
   el.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => showView('trips'));
+  const lb = lastBackup(); let snz = 0; try{ snz = +localStorage.getItem('pm-bk-snooze') || 0; }catch(e){}
+  if(!state.example && (!lb || lb.days >= 30) && Date.now() > snz){
+    const d = document.createElement('div'); d.className = 'exp-alert';
+    d.innerHTML = '<span>' + (lb ? '<b>Your last backup was ' + lb.days + ' days ago.</b>' : '<b>You have not saved a backup yet.</b>') + ' A copy keeps your points safe if this browser is cleared.</span><span class="row" style="display:flex;gap:6px"><button class="btn" type="button" data-bk>Save backup</button><button class="btn" type="button" data-later>Later</button></span>';
+    d.querySelector('[data-bk]').onclick = saveBackup;
+    d.querySelector('[data-later]').onclick = () => { try{ localStorage.setItem('pm-bk-snooze', String(Date.now() + 7*864e5)); }catch(e){} renderExpiry(); };
+    el.appendChild(d);
+  }
 }
 
 /* wallet: points already held in airline and hotel programs */
