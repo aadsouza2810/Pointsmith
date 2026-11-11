@@ -376,6 +376,7 @@ nav#tabs svg{width:17px;height:17px;flex:none}
       <div class="body">
         <p class="note" style="margin:0">Every award price on file, priced in your cards' points, for one traveller one way or one room for one night. Enter a typical cash price to see the ₹ per point. Without one, the last column shows the cash price above which your points beat the card's easy option. Taxes and fees are not included, and held airline or hotel points are not used here.</p>
         <label class="small">Show <select id="rankType"><option value="all">Flights and hotels</option><option value="flight">Flights</option><option value="hotel">Hotels</option></select></label>
+        <label class="small">Cabin <select id="rankCabin"><option value="all">All cabins</option><option value="Business">Business</option><option value="Economy">Economy</option></select></label>
         <div class="tbl"><table>
           <thead><tr><th>Redemption</th><th>Pay with</th><th class="r">Typical cash price (₹)</th><th class="r">₹ per point</th><th>Call</th></tr></thead>
           <tbody id="rankRows"></tbody>
@@ -551,12 +552,16 @@ const PROGRAMS = {
   neu:  {name:'Tata Neu (HDFC or SBI)', unit:'NeuCoins'},
   infinia:{name:'HDFC Infinia', unit:'Reward Points'},
   millennia:{name:'HDFC Millennia', unit:'CashPoints'},
-  hdfcupi:{name:'HDFC UPI RuPay', unit:'CashPoints'}
+  hdfcupi:{name:'HDFC UPI RuPay', unit:'CashPoints'},
+  select:{name:'Axis Bank Select', unit:'EDGE Reward Points'},
+  amazonpay:{name:'ICICI Amazon Pay', unit:'Amazon Pay ₹'}
 };
-const DEFAULT_CARDS = {pt:true, mrcc:true, atlas:true, bonvoy:false, neu:false, infinia:false, millennia:false, hdfcupi:false};
+const DEFAULT_CARDS = {pt:true, mrcc:true, atlas:true, bonvoy:false, neu:false, infinia:false, millennia:false, hdfcupi:false, select:false, amazonpay:false};
 const CAPS = {
   atlasA:{label:'Group A · 30,000/yr', limit:30000},
-  atlasB:{label:'Group B · 1,20,000/yr', limit:120000}
+  atlasB:{label:'Group B · 1,20,000/yr', limit:120000},
+  selA:{label:'Group A · 1,00,000 points/yr', limit:100000},
+  selB:{label:'Group B · 4,00,000 points/yr', limit:400000}
 };
 const AMEX = ['pt','mrcc'];
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -577,7 +582,7 @@ const PARTNERS = [
   {k:'delta', name:'Delta SkyMiles', type:'Airline'}, {k:'aadvantage', name:'American AAdvantage', type:'Airline'}
 ];
 const PARTNER_NAME = Object.fromEntries(PARTNERS.map(p => [p.k, p.name]));
-const OPTIONS_VERSION = 6;
+const OPTIONS_VERSION = 7;
 // ratio = partner points per 1 card point. The value of a partner point comes from MILES below. fixed = ₹ per card point.
 const T = (p, id, cards, ratio, cap, verified, kind) => Object.assign({id, cards, partner:p, name:PARTNER_NAME[p], kind:kind || 'Airline transfer', ratio, verified}, cap ? {cap} : {});
 const DEFAULT_OPTIONS = [
@@ -608,6 +613,12 @@ const DEFAULT_OPTIONS = [
   {id:'mil-statement', cards:['millennia'], name:'Statement credit (₹1 per CashPoint; minimum 500, ₹50 fee per redemption, 3,000 CashPoints a month)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
   {id:'mil-smartbuy', cards:['millennia'], name:'SmartBuy flights and hotels (₹1 per CashPoint)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
   {id:'mil-catalogue', cards:['millennia'], name:'Online rewards catalogue (₹0.30 per CashPoint, ₹99 plus taxes per redemption)', kind:'Voucher', fixed:0.3, verified:'2026-11-11'},
+  ...[['air-india','selA'],['qantas','selA'],['ba','selB'],['qatar','selB'],['krisflyer','selB']].map(([p, c]) => T(p, 'sel-' + p, ['select'], 0.1, c, '2026-11-11')),
+  ...['hilton','ihg'].map(p => T(p, 'sel-' + p, ['select'], 0.1, 'selB', '2026-11-11', 'Hotel transfer')),
+  {id:'sel-travel', cards:['select'], name:'Travel EDGE flights and hotels (₹0.20 per point; a redemption fee may apply, confirm with Axis)', kind:'Fixed value', fixed:0.2, verified:'2026-11-11'},
+  {id:'sel-cashback', cards:['select'], name:'Cashback (₹0.20 per point; a redemption fee may apply, confirm with Axis)', kind:'Fixed value', fixed:0.2, verified:'2026-11-11'},
+  {id:'sel-voucher', cards:['select'], name:'Voucher catalogue (₹0.20 per point)', kind:'Voucher', fixed:0.2, verified:'2026-11-11'},
+  {id:'amz-balance', cards:['amazonpay'], name:'Spend on Amazon and Amazon Pay partners (₹1 per ₹1 of cashback; not cash)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
   {id:'upi-statement', cards:['hdfcupi'], name:'Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
   {id:'upi-smartbuy', cards:['hdfcupi'], name:'SmartBuy flights and hotels (₹0.25 per CashPoint; up to 50% of the booking, ₹50,000 a month)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
   {id:'upi-catalogue', cards:['hdfcupi'], name:'Catalogue vouchers and products (₹0.25 per CashPoint; up to 70% of the value)', kind:'Voucher', fixed:0.25, verified:'2026-11-11'},
@@ -685,7 +696,7 @@ const LINKS = [
   {from:'finnair', to:'qatar', ratio:1, note:'Avios move free between Finnair and Qatar. Name, email and date of birth must match on both accounts.', src:['CardAdvisor', 'https://cardadvisor.in/articles/hdfc-reward-points-transfer-guide'], verified:'2026-06-30'},
   {from:'finnair', to:'ba', ratio:1, note:'Avios move free between Finnair and British Airways. Name, email and date of birth must match on both accounts.', src:['CardAdvisor', 'https://cardadvisor.in/articles/hdfc-reward-points-transfer-guide'], verified:'2026-06-30'}
 ];
-const EXAMPLE_BAL = {pt:40000, mrcc:25000, atlas:50000, bonvoy:30000, neu:5000, infinia:60000, millennia:2000, hdfcupi:2000};
+const EXAMPLE_BAL = {pt:40000, mrcc:25000, atlas:50000, bonvoy:30000, neu:5000, infinia:60000, millennia:2000, hdfcupi:2000, select:0, amazonpay:0};
 const KEY = 'pvf.v1';
 
 let planGrand = 0, walletTotal = 0, view = 'home', setTab = 'setup';
@@ -1120,10 +1131,13 @@ function bestRoute(a){
 const cashKey = a => a.route + '|' + a.cabin;
 function renderRank(){
   const tb = document.getElementById('rankRows'); if(!tb) return;
-  const type = document.getElementById('rankType').value, rows = [];
+  const type = document.getElementById('rankType').value, cabinSel = document.getElementById('rankCabin'), rows = [];
+  cabinSel.disabled = type !== 'flight';
+  const cabinF = type === 'flight' ? cabinSel.value : 'all';
   allAwards().forEach(a => {
     const h = PARTNER_TYPE[a.partner] === 'Hotel';
     if(type !== 'all' && (type === 'hotel') !== h) return;
+    if(cabinF !== 'all' && a.cabin !== cabinF) return;
     const b = bestRoute(a); if(!b) return;
     const key = cashKey(a), ref = CASH_REF[key], mine = state.cashRef[key], cash = mine != null ? mine : (ref ? ref.cash : null);
     const fl = easyFloor(b.card), floorV = fl ? vpp(fl) : 0, typ = vpp(b.o) || 0;
@@ -1156,6 +1170,7 @@ function renderRank(){
   });
 }
 document.getElementById('rankType').addEventListener('change', renderRank);
+document.getElementById('rankCabin').addEventListener('change', renderRank);
 { const base = renderPlanner; renderPlanner = function(){ base(); renderRank(); if(typeof renderTrips === 'function'){ renderTrips(); renderNextTrip(); } }; }
 function renderAwards(){
   document.getElementById('awardRows').innerHTML = allAwards().map(a => `<tr>
@@ -1781,7 +1796,7 @@ function buildPack(){
 function buildUpdateRequest(){
   return `Today is ${today()}. I keep a personal credit card points tool for India. Please refresh its data using web search, then reply with ONE JSON object and nothing else (no commentary, no code fence needed).
 
-Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints).
+Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints), select = Axis Bank Select (EDGE Reward Points), amazonpay = ICICI Amazon Pay (Amazon Pay balance in rupees).
 
 Check the latest on:
 1. The rupee value of one mile or point in each loyalty program ("miles"). Use published Indian points-blog estimates, and put the source in "src". Use null if you cannot find a reliable figure.
@@ -2081,13 +2096,13 @@ const KEYWORDS = ['virgin','marriott','hilton','accor','taj','postcard','air ind
 function buildPrompt(q){
   const opts = liveOptions().map(o => ({id:o.id, name:o.name, cards:o.cards, kind:o.kind, rupees_per_point:+vpp(o).toFixed(3), cap:o.cap ? CAPS[o.cap].label : null, account:acctState(o)}));
   return `You are the search engine of a personal credit card points tool for a user in India.
-Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints).
+Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints), select = Axis Bank Select (EDGE Reward Points), amazonpay = ICICI Amazon Pay (Amazon Pay balance in rupees).
 Redemption options (JSON): ${JSON.stringify(opts)}
 User balances: ${JSON.stringify(Object.fromEntries(myCards().map(k => [k, state.balances[k] || 0])))}
 Airline and hotel programs the user holds an account with: ${JSON.stringify(heldNames())}
 Question: ${JSON.stringify(q)}
 
-Reply with only one JSON object: {"summary": string, "ids": string[], "card": "pt"|"mrcc"|"atlas"|"bonvoy"|"neu"|"infinia"|"millennia"|"hdfcupi"|null, "points": number|null}
+Reply with only one JSON object: {"summary": string, "ids": string[], "card": "pt"|"mrcc"|"atlas"|"bonvoy"|"neu"|"infinia"|"millennia"|"hdfcupi"|"select"|"amazonpay"|null, "points": number|null}
 - summary: one or two plain sentences answering the question. Mention a yearly cap if it matters, and whether the user already has or would need to join the partner program (option "account": "have" or "needs sign-up"; null means not applicable). Do not state rupee totals; the page computes them.
 - ids: option ids from the list that answer the question, best first, at most 8, [] if nothing relates.
 - card: the card the question is about, else null.
@@ -2097,7 +2112,9 @@ Reply with only one JSON object: {"summary": string, "ids": string[], "card": "p
 function localSearch(q){
   const s = q.toLowerCase();
   let card = null;
-  if(/atlas|axis|edge/.test(s)) card = 'atlas';
+  if(/axis select|select card|axis bank select/.test(s)) card = 'select';
+  else if(/amazon pay|amazon icici|icici amazon/.test(s)) card = 'amazonpay';
+  else if(/atlas|axis|edge/.test(s)) card = 'atlas';
   else if(/infinia/.test(s)) card = 'infinia';
   else if(/millennia/.test(s)) card = 'millennia';
   else if(/upi rupay|rupay|upi card/.test(s)) card = 'hdfcupi';

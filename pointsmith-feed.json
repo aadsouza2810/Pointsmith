@@ -459,6 +459,68 @@
       "fixed": 0.3
     },
     {
+      "id": "sel-air-india",
+      "name": "Air India Maharaja Club",
+      "ratio": 0.1,
+      "cap": "selA"
+    },
+    {
+      "id": "sel-qantas",
+      "name": "Qantas Frequent Flyer",
+      "ratio": 0.1,
+      "cap": "selA"
+    },
+    {
+      "id": "sel-ba",
+      "name": "British Airways Executive Club",
+      "ratio": 0.1,
+      "cap": "selB"
+    },
+    {
+      "id": "sel-qatar",
+      "name": "Qatar Privilege Club",
+      "ratio": 0.1,
+      "cap": "selB"
+    },
+    {
+      "id": "sel-krisflyer",
+      "name": "Singapore KrisFlyer",
+      "ratio": 0.1,
+      "cap": "selB"
+    },
+    {
+      "id": "sel-hilton",
+      "name": "Hilton Honors",
+      "ratio": 0.1,
+      "cap": "selB"
+    },
+    {
+      "id": "sel-ihg",
+      "name": "IHG One Rewards",
+      "ratio": 0.1,
+      "cap": "selB"
+    },
+    {
+      "id": "sel-travel",
+      "name": "Travel EDGE flights and hotels (₹0.20 per point; a redemption fee may apply, confirm with Axis)",
+      "fixed": 0.2
+    },
+    {
+      "id": "sel-cashback",
+      "name": "Cashback (₹0.20 per point; a redemption fee may apply, confirm with Axis)",
+      "fixed": 0.2
+    },
+    {
+      "id": "sel-voucher",
+      "name": "Voucher catalogue (₹0.20 per point)",
+      "fixed": 0.2
+    },
+    {
+      "id": "amz-balance",
+      "name": "Spend on Amazon and Amazon Pay partners (₹1 per ₹1 of cashback; not cash)",
+      "fixed": 1
+    },
+    {
       "id": "upi-statement",
       "name": "Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)",
       "fixed": 0.25
