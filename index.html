@@ -208,6 +208,9 @@ nav#tabs svg{width:17px;height:17px;flex:none}
   .tbl.prog td:first-child::before{content:attr(data-th)}
   .fold .tbl tr{background:var(--bg)}
 }
+.bkprompt{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.18);display:grid;gap:8px;max-width:520px;margin:0 auto}
+.bkprompt p{margin:0;font-size:.9rem}.bkprompt .row{display:flex;gap:8px}
+@media (min-width:641px){.bkprompt{bottom:16px}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:.85rem}
 @media (prefers-reduced-motion:no-preference){.rank li{transition:border-color .15s}.rank li:hover{border-color:var(--accent)}}
 </style>
@@ -551,6 +554,10 @@ nav#tabs svg{width:17px;height:17px;flex:none}
     <a href="https://all.accor.com/a/en/loyalty-program/partners/airlines/japanairlines.html" target="_blank" rel="noopener">JAL to Accor</a></p>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="bkprompt" id="bkPrompt" role="dialog" aria-label="Save a backup" hidden>
+  <p><b>Your data was updated.</b> Save a backup file so you do not lose it.</p>
+  <div class="row"><button class="btn primary" type="button" id="bkpSave">Save backup</button><button class="btn" type="button" id="bkpLater">Not now</button></div>
+</div>
 
 <script>
 const USER = {role:'Admin'};
@@ -809,6 +816,18 @@ function today(){ return nowIST().slice(0,10); }
 function audit(action, record, field, oldV, newV){
   state.audit.unshift({ts:nowIST(), user:state.userName, role:USER.role, action, record, field, old:String(oldV ?? '—'), nw:String(newV ?? '—')});
   save();
+  noteChange(action);
+}
+/* after any change, a few seconds later, offer to save a backup file */
+var bkDirty = false, bkTimer = null, bkSnooze = 0;
+function noteChange(action){
+  if(action === 'MIGRATE' || action === 'IMPORT' || state.example) return;
+  if(action === 'EXPORT'){ bkDirty = false; clearTimeout(bkTimer); const b = document.getElementById('bkPrompt'); if(b) b.hidden = true; return; }
+  bkDirty = true; clearTimeout(bkTimer); bkTimer = setTimeout(showBkPrompt, 4000);
+}
+function showBkPrompt(){
+  const b = document.getElementById('bkPrompt'); if(!b || !bkDirty || Date.now() < bkSnooze) return;
+  b.hidden = false;
 }
 function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(()=>t.hidden = true, 1800); }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1698,6 +1717,8 @@ function parseBackup(text){
   return out;
 }
 document.getElementById('bkSave').onclick = saveBackup;
+document.getElementById('bkpSave').onclick = async () => { document.getElementById('bkPrompt').hidden = true; await saveBackup(); };
+document.getElementById('bkpLater').onclick = () => { bkSnooze = Date.now() + 30 * 60000; document.getElementById('bkPrompt').hidden = true; };
 document.getElementById('bkSend').onclick = sendBackup;
 document.getElementById('bkPick').onclick = () => document.getElementById('bkFile').click();
 document.getElementById('bkFile').onchange = e => {
