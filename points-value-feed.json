@@ -1,0 +1,1179 @@
+{
+  "app": "points-value-finder",
+  "kind": "update-pack",
+  "version": 1,
+  "generated": "2026-11-11",
+  "miles": {
+    "air-india": {
+      "typ": 0.65,
+      "src": "CardExpress estimate, 11 Oct 2026. Air India cut award prices in April 2026, so this may be low.",
+      "verified": "2026-11-10"
+    },
+    "flying-blue": {
+      "typ": 1.19,
+      "src": "CardExpress estimate, 11 Oct 2026",
+      "verified": "2026-11-10"
+    },
+    "krisflyer": {
+      "typ": 1.25,
+      "src": "CardExpress estimate, 11 Oct 2026",
+      "verified": "2026-11-10"
+    },
+    "virgin": {
+      "typ": 1.28,
+      "src": "CardExpress estimate, 11 Oct 2026",
+      "verified": "2026-11-10"
+    },
+    "turkish": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "qatar": {
+      "typ": 1,
+      "src": "CardAdvisor planning baseline of ₹1.00 per Avios, not a measured value. Good awards are worth more.",
+      "verified": "2026-11-10"
+    },
+    "ba": {
+      "typ": 1,
+      "src": "CardAdvisor planning baseline of ₹1.00 per Avios, not a measured value. Good awards are worth more.",
+      "verified": "2026-11-10"
+    },
+    "etihad": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "cathay": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "jal": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "united": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "aeroplan": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "qantas": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "miles-more": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "finnair": {
+      "typ": 1,
+      "src": "CardAdvisor planning baseline of ₹1.00 per Avios, not a measured value. Good awards are worth more.",
+      "verified": "2026-11-10"
+    },
+    "vietnam": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "marriott": {
+      "typ": 0.6,
+      "src": "CardAdvisor estimate (CardExpress says 0.63)",
+      "verified": "2026-11-10"
+    },
+    "hilton": {
+      "typ": 0.46,
+      "src": "CardExpress estimate, 11 Oct 2026",
+      "verified": "2026-11-10"
+    },
+    "accor": {
+      "typ": 1.78,
+      "src": "Conservative planning value (CardAdvisor 2.00, CardExpress 2.20)",
+      "verified": "2026-11-10"
+    },
+    "ihg": {
+      "typ": 0.45,
+      "src": "CardAdvisor planning estimate, 24 Oct 2026. Not an IHG figure.",
+      "verified": "2026-11-11"
+    },
+    "hyatt": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "radisson": {
+      "typ": 0.22,
+      "src": "CardAdvisor, HDFC transfer guide summary. Verify before relying on it.",
+      "verified": "2026-11-11"
+    },
+    "emirates": {
+      "typ": 1,
+      "src": "CardAdvisor travel-portal value, Jul to Oct 2026. Not a measured award value.",
+      "verified": "2026-11-11"
+    },
+    "indigo": {
+      "typ": 0.42,
+      "src": "CardAdvisor planning estimate, 27 Oct 2026. IndiGo publishes no rate.",
+      "verified": "2026-11-11"
+    },
+    "thai": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "malaysia": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "korean": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "delta": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    },
+    "aadvantage": {
+      "typ": null,
+      "src": "",
+      "verified": "2026-11-10"
+    }
+  },
+  "options": [
+    {
+      "id": "atl-air-india",
+      "name": "Air India Maharaja Club",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-krisflyer",
+      "name": "Singapore KrisFlyer",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-flying-blue",
+      "name": "Flying Blue",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-aeroplan",
+      "name": "Air Canada Aeroplan",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-turkish",
+      "name": "Turkish Miles&Smiles",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-jal",
+      "name": "JAL Mileage Bank",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-etihad",
+      "name": "Etihad Guest",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-united",
+      "name": "United MileagePlus",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-qantas",
+      "name": "Qantas Frequent Flyer",
+      "ratio": 2,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-ba",
+      "name": "British Airways Executive Club",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-qatar",
+      "name": "Qatar Privilege Club",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-cathay",
+      "name": "Cathay Asia Miles",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-finnair",
+      "name": "Finnair Plus",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-vietnam",
+      "name": "Vietnam Lotusmiles",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-miles-more",
+      "name": "Lufthansa Miles & More",
+      "ratio": 1,
+      "cap": "atlasB"
+    },
+    {
+      "id": "atl-accor",
+      "name": "Accor ALL",
+      "ratio": 0.5,
+      "cap": "atlasA"
+    },
+    {
+      "id": "atl-hilton",
+      "name": "Hilton Honors",
+      "ratio": 2,
+      "cap": "atlasB"
+    },
+    {
+      "id": "atl-bill",
+      "name": "Pay card bill / Travel EDGE bookings",
+      "fixed": 1
+    },
+    {
+      "id": "amx-virgin",
+      "name": "Virgin Atlantic Flying Club",
+      "ratio": 0.8
+    },
+    {
+      "id": "amx-marriott",
+      "name": "Marriott Bonvoy",
+      "ratio": 1
+    },
+    {
+      "id": "amx-hilton",
+      "name": "Hilton Honors",
+      "ratio": 1.5
+    },
+    {
+      "id": "amx-krisflyer",
+      "name": "Singapore KrisFlyer",
+      "ratio": 0.5
+    },
+    {
+      "id": "amx-cathay",
+      "name": "Cathay Asia Miles",
+      "ratio": 0.5
+    },
+    {
+      "id": "amx-ba",
+      "name": "British Airways Executive Club",
+      "ratio": 0.5
+    },
+    {
+      "id": "amx-qatar",
+      "name": "Qatar Privilege Club",
+      "ratio": 0.5
+    },
+    {
+      "id": "mr-24taj",
+      "name": "24K Gold Collection · Taj ₹14,000 for 24,000",
+      "fixed": 0.583
+    },
+    {
+      "id": "mr-18taj",
+      "name": "18K Gold Collection · Taj ₹9,000 for 18,000",
+      "fixed": 0.5
+    },
+    {
+      "id": "mr-18myn",
+      "name": "18K Gold Collection · Myntra ₹8,000",
+      "fixed": 0.444
+    },
+    {
+      "id": "mr-24amz",
+      "name": "24K Gold Collection · Amazon/Flipkart ₹8,000",
+      "fixed": 0.333
+    },
+    {
+      "id": "pt-postcard",
+      "name": "Platinum Travel Collection · Postcard ₹10,000 for 20,000",
+      "fixed": 0.5
+    },
+    {
+      "id": "pt-taj",
+      "name": "Platinum Travel Collection · Taj ₹10,000 for 25,000",
+      "fixed": 0.4
+    },
+    {
+      "id": "pt-ai",
+      "name": "Platinum Travel Collection · Air India ₹6,000 for 20,000",
+      "fixed": 0.3
+    },
+    {
+      "id": "bv-marriott",
+      "name": "Marriott Bonvoy hotel stays",
+      "ratio": 1
+    },
+    {
+      "id": "bv-krisflyer",
+      "name": "Singapore KrisFlyer",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-flying-blue",
+      "name": "Flying Blue",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-virgin",
+      "name": "Virgin Atlantic Flying Club",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-turkish",
+      "name": "Turkish Miles&Smiles",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-qatar",
+      "name": "Qatar Privilege Club",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-etihad",
+      "name": "Etihad Guest",
+      "ratio": 0.333
+    },
+    {
+      "id": "bv-cathay",
+      "name": "Cathay Asia Miles",
+      "ratio": 0.333
+    },
+    {
+      "id": "inf-smartbuy",
+      "name": "SmartBuy flights and hotels (points cover up to 70% of the booking, 75,000 points a month)",
+      "fixed": 1
+    },
+    {
+      "id": "inf-krisflyer",
+      "name": "Singapore KrisFlyer",
+      "ratio": 1
+    },
+    {
+      "id": "inf-flying-blue",
+      "name": "Flying Blue",
+      "ratio": 1
+    },
+    {
+      "id": "inf-finnair",
+      "name": "Finnair Plus",
+      "ratio": 1
+    },
+    {
+      "id": "inf-vietnam",
+      "name": "Vietnam Lotusmiles",
+      "ratio": 1
+    },
+    {
+      "id": "inf-air-india",
+      "name": "Air India Maharaja Club",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-united",
+      "name": "United MileagePlus",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-turkish",
+      "name": "Turkish Miles&Smiles",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-ba",
+      "name": "British Airways Executive Club",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-qatar",
+      "name": "Qatar Privilege Club",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-cathay",
+      "name": "Cathay Asia Miles",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-aeroplan",
+      "name": "Air Canada Aeroplan",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-etihad",
+      "name": "Etihad Guest",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-accor",
+      "name": "Accor ALL",
+      "ratio": 0.5
+    },
+    {
+      "id": "inf-marriott",
+      "name": "Marriott Bonvoy",
+      "ratio": 0.5
+    },
+    {
+      "id": "mil-statement",
+      "name": "Statement credit (₹1 per CashPoint; minimum 500, ₹50 fee per redemption, 3,000 CashPoints a month)",
+      "fixed": 1
+    },
+    {
+      "id": "mil-smartbuy",
+      "name": "SmartBuy flights and hotels (₹1 per CashPoint)",
+      "fixed": 1
+    },
+    {
+      "id": "mil-catalogue",
+      "name": "Online rewards catalogue (₹0.30 per CashPoint, ₹99 plus taxes per redemption)",
+      "fixed": 0.3
+    },
+    {
+      "id": "upi-statement",
+      "name": "Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)",
+      "fixed": 0.25
+    },
+    {
+      "id": "upi-smartbuy",
+      "name": "SmartBuy flights and hotels (₹0.25 per CashPoint; up to 50% of the booking, ₹50,000 a month)",
+      "fixed": 0.25
+    },
+    {
+      "id": "upi-catalogue",
+      "name": "Catalogue vouchers and products (₹0.25 per CashPoint; up to 70% of the value)",
+      "fixed": 0.25
+    },
+    {
+      "id": "neu-brands",
+      "name": "Tata Neu app brands and Taj/IHCL (BigBasket, Croma, Tata CLiQ, 1mg, Westside)",
+      "fixed": 1
+    },
+    {
+      "id": "amx-pwp",
+      "name": "Pay with Points on Amex Travel / statement credit",
+      "fixed": 0.25
+    }
+  ],
+  "awards": [
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "Economy",
+      "tier": "Saver",
+      "miles": 19000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "Priced Singapore to Mumbai, assumed the same in reverse.",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "Premium Economy",
+      "tier": "Saver",
+      "miles": 36000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "Business",
+      "tier": "Saver",
+      "miles": 45000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "First",
+      "tier": "Saver",
+      "miles": 61500,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "Economy",
+      "tier": "Advantage",
+      "miles": 40500,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "Business",
+      "tier": "Advantage",
+      "miles": 75000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Mumbai ↔ Singapore",
+      "partner": "krisflyer",
+      "cabin": "First",
+      "tier": "Advantage",
+      "miles": 112500,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "flying-blue",
+      "cabin": "Economy",
+      "tier": "Standard",
+      "miles": 30000,
+      "taxes": 0,
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/flying-blue-promo-rewards-january-2026/"
+      ],
+      "note": "Derived: the January promo price of 22,500 miles is 25% off.",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "flying-blue",
+      "cabin": "Business",
+      "tier": "Standard",
+      "miles": 85000,
+      "taxes": 0,
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/flying-blue-promo-rewards-april-2026/"
+      ],
+      "note": "Mumbai to Europe via KLM. Promo months take 25% off.",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Economy",
+      "tier": "Air France, standard",
+      "miles": 15000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Economy",
+      "tier": "Air France, peak",
+      "miles": 25000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Premium Economy",
+      "tier": "Air France, standard",
+      "miles": 30000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Premium Economy",
+      "tier": "Air France, peak",
+      "miles": 40000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Business",
+      "tier": "Air France, standard",
+      "miles": 61000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "India ↔ Europe",
+      "partner": "virgin",
+      "cabin": "Business",
+      "tier": "Air France, peak",
+      "miles": 71000,
+      "taxes": 0,
+      "src": [
+        "CardAdvisor",
+        "https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide"
+      ],
+      "note": "",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Delhi ↔ Singapore, Bangkok, Dubai or Bali",
+      "partner": "air-india",
+      "cabin": "Economy",
+      "tier": "Flat regional tier",
+      "miles": 12000,
+      "taxes": 0,
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/maharaja-club-april-2026-all-changes/"
+      ],
+      "note": "Applies from 1 April 2026.",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Delhi ↔ San Francisco",
+      "partner": "air-india",
+      "cabin": "Economy",
+      "tier": "Flat regional tier",
+      "miles": 40000,
+      "taxes": 0,
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/maharaja-club-april-2026-all-changes/"
+      ],
+      "note": "Was 77,000 before April 2026.",
+      "verified": "2026-11-10"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 4 (Westin, Le Méridien)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Off-peak",
+      "miles": 20000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 4 (Westin, Le Méridien)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Standard",
+      "miles": 25000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 4 (Westin, Le Méridien)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Peak",
+      "miles": 30000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 5 (JW Marriott, W)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Off-peak",
+      "miles": 30000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 5 (JW Marriott, W)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Standard",
+      "miles": 35000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 5 (JW Marriott, W)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Peak",
+      "miles": 40000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 6 (Luxury Collection, EDITION)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Off-peak",
+      "miles": 40000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 6 (Luxury Collection, EDITION)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Standard",
+      "miles": 50000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 6 (Luxury Collection, EDITION)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Peak",
+      "miles": 60000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 7 (St. Regis, Ritz-Carlton)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Off-peak",
+      "miles": 50000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 7 (St. Regis, Ritz-Carlton)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Standard",
+      "miles": 60000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "Marriott Bonvoy · Category 7 (St. Regis, Ritz-Carlton)",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Peak",
+      "miles": 70000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/award-charts/marriott-bonvoy"
+      ],
+      "note": "Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "JW Marriott Mumbai Juhu",
+      "partner": "marriott",
+      "cabin": "Standard room",
+      "tier": "Tracked rate, Mar 2026",
+      "miles": 52000,
+      "taxes": 0,
+      "src": [
+        "AwardTravelFinder",
+        "https://awardtravelfinder.com/hotels/jw-marriott-mumbai-juhu"
+      ],
+      "note": "The same page also lists a 60,000 standard night. Confirm on Marriott for your dates.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 4",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Lowest",
+      "miles": 12000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 4",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Moderate",
+      "miles": 20000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 4",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Top",
+      "miles": 25000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 5",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Lowest",
+      "miles": 15000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 5",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Moderate",
+      "miles": 25000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 5",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Top",
+      "miles": 35000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 6",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Lowest",
+      "miles": 20000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 6",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Moderate",
+      "miles": 30000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 6",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Top",
+      "miles": 40000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 7",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Lowest",
+      "miles": 25000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 7",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Moderate",
+      "miles": 35000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    },
+    {
+      "route": "World of Hyatt · Category 7",
+      "partner": "hyatt",
+      "cabin": "Standard room",
+      "tier": "Top",
+      "miles": 55000,
+      "taxes": 0,
+      "src": [
+        "Milelion",
+        "https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/"
+      ],
+      "note": "Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.",
+      "verified": "2026-11-11"
+    }
+  ],
+  "deals": [
+    {
+      "status": "active",
+      "title": "Amex MR to Virgin Atlantic at 5:4 and Hilton at 1:1.5",
+      "cards": [
+        "pt",
+        "mrcc"
+      ],
+      "ends": null,
+      "detail": "Amex improved these two ratios on 18 Aug 2026 without an announcement. It may be a standing change or an unlabelled bonus.",
+      "action": "If you already have a Virgin award seat in mind, this is the best airline ratio Amex offers. Do not transfer without a seat found.",
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/amex-india-transfer-partners/"
+      ]
+    },
+    {
+      "status": "watch",
+      "title": "Amex ends points pooling between cards",
+      "cards": [
+        "pt",
+        "mrcc"
+      ],
+      "ends": null,
+      "detail": "MR points on each card will be kept separately and cannot be combined. Sources give 11 Oct and 15 Nov 2026 as the date, so check your Amex notice.",
+      "action": "Plan each card on its own. A transfer needs the minimum block on one card, for example 800 MR for Virgin.",
+      "src": [
+        "LiveFromALounge",
+        "https://livefromalounge.com/american-express-membership-rewards-india-changes-coming-october-11-2026"
+      ]
+    },
+    {
+      "status": "watch",
+      "title": "Axis yearly transfer allowance resets on 1 January",
+      "cards": [
+        "atlas"
+      ],
+      "ends": "2026-12-31",
+      "detail": "Atlas can send 30,000 EDGE Miles a year to Group A partners (KrisFlyer, Air India, Flying Blue, Accor). Unused allowance does not carry over.",
+      "action": "Decide before December which Group A partner gets it. At 1:2 that is up to 60,000 partner miles.",
+      "src": [
+        "PickMyCard",
+        "https://www.pickmycard.in/blog/axis-edge-transfer-partners-september-2026"
+      ]
+    },
+    {
+      "status": "watch",
+      "title": "Flying Blue Promo Rewards",
+      "cards": [
+        "atlas"
+      ],
+      "ends": null,
+      "detail": "Flying Blue runs monthly discounted awards, often about 25% off from Indian cities. I could not confirm the November promo yet.",
+      "action": "Check the Flying Blue promo page at the start of next month. Atlas sends to Flying Blue at 1:2 within the Group A cap.",
+      "src": [
+        "Magnify guide",
+        "https://magnify.club/guides/flying-blue-promo-rewards-guide/"
+      ]
+    },
+    {
+      "status": "info",
+      "title": "Vietnam Airlines LotusDay, 50% off awards",
+      "cards": [],
+      "ends": "2026-10-31",
+      "detail": "Business class return to Vietnam is 60,000 Lotusmiles during the sale. Atlas converts to Vietnam at 2:1, and the Group A cap allows at most 15,000 miles a year.",
+      "action": "Not practical with your cards.",
+      "src": [
+        "Magnify",
+        "https://magnify.club/guides/vietnam-airlines-lotusday-50-percent-award-discount/"
+      ]
+    },
+    {
+      "status": "info",
+      "title": "Amex MRCC 50% fee waiver removed",
+      "cards": [
+        "mrcc"
+      ],
+      "ends": null,
+      "detail": "The 50% renewal waiver for ₹90,000 to ₹1,49,999 of spend is gone. The full waiver at ₹1.5 lakh stays. Renewal fee is ₹4,500.",
+      "action": "Check your annual spend against the ₹1.5 lakh line.",
+      "src": [
+        "PickMyCard",
+        "https://www.pickmycard.in/blog/amex-membership-rewards-changes-october-2026"
+      ]
+    },
+    {
+      "status": "none",
+      "title": "No bank transfer bonuses running",
+      "cards": [
+        "pt",
+        "mrcc",
+        "atlas"
+      ],
+      "ends": null,
+      "detail": "Two India trackers list no live transfer bonus for Amex or Axis. They are not real-time, and bonuses are rare in India, usually 20% to 30%.",
+      "action": "Transfer only against a booking you have found.",
+      "src": [
+        "CreditCardBasket",
+        "https://creditcardbasket.in/transfer-bonuses"
+      ]
+    }
+  ]
+}
