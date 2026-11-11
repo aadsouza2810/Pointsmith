@@ -522,7 +522,7 @@
     },
     {
       "id": "upi-statement",
-      "name": "Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)",
+      "name": "Statement credit (₹0.25 per CashPoint; minimum 2,000 CashPoints, which is ₹500)",
       "fixed": 0.25
     },
     {

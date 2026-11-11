@@ -153,6 +153,10 @@ nav#tabs svg{width:17px;height:17px;flex:none}
 .fold>summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
 .fold>summary::-webkit-details-marker{display:none}
 .fold>summary h2{font-size:1rem;margin-right:auto}
+.rl{border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.rl>summary{padding:10px 12px;font-weight:600;cursor:pointer}
+.rl .rlb{padding:2px 12px 12px;display:grid;gap:4px}
+.rl ul{margin:0;padding-left:18px;font-size:.88rem}
 .fold>summary .sumval{font:600 .95rem var(--f-num);color:var(--accent);white-space:nowrap}
 .fold>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:-4px 2px 0 4px;flex:none}
 .fold[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
@@ -315,6 +319,13 @@ nav#tabs svg{width:17px;height:17px;flex:none}
       <div class="body">
         <p class="note" style="margin:0">Points you already hold in a loyalty program, valued at the ₹ per point in Settings → Rates. Tick the program and enter the balance in Settings → Cards and programs.</p>
         <div class="plan" id="wallet"></div>
+      </div>
+    </details>
+    <details class="fold">
+      <summary><h2>What earns points, and milestones</h2><span class="sumval" id="rulesSum"></span></summary>
+      <div class="body">
+        <p class="note" style="margin:0">For the cards you hold: spends that earn nothing, earning caps, milestones and the annual fee. Rules change often, so confirm with the card issuer before relying on a milestone.</p>
+        <div id="rules" style="display:grid;gap:8px"></div>
       </div>
     </details>
     <p class="avoid" id="avoid"></p>
@@ -582,7 +593,7 @@ const PARTNERS = [
   {k:'delta', name:'Delta SkyMiles', type:'Airline'}, {k:'aadvantage', name:'American AAdvantage', type:'Airline'}
 ];
 const PARTNER_NAME = Object.fromEntries(PARTNERS.map(p => [p.k, p.name]));
-const OPTIONS_VERSION = 7;
+const OPTIONS_VERSION = 8;
 // ratio = partner points per 1 card point. The value of a partner point comes from MILES below. fixed = ₹ per card point.
 const T = (p, id, cards, ratio, cap, verified, kind) => Object.assign({id, cards, partner:p, name:PARTNER_NAME[p], kind:kind || 'Airline transfer', ratio, verified}, cap ? {cap} : {});
 const DEFAULT_OPTIONS = [
@@ -619,7 +630,7 @@ const DEFAULT_OPTIONS = [
   {id:'sel-cashback', cards:['select'], name:'Cashback (₹0.20 per point; a redemption fee may apply, confirm with Axis)', kind:'Fixed value', fixed:0.2, verified:'2026-11-11'},
   {id:'sel-voucher', cards:['select'], name:'Voucher catalogue (₹0.20 per point)', kind:'Voucher', fixed:0.2, verified:'2026-11-11'},
   {id:'amz-balance', cards:['amazonpay'], name:'Spend on Amazon and Amazon Pay partners (₹1 per ₹1 of cashback; not cash)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
-  {id:'upi-statement', cards:['hdfcupi'], name:'Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
+  {id:'upi-statement', cards:['hdfcupi'], name:'Statement credit (₹0.25 per CashPoint; minimum 2,000 CashPoints, which is ₹500)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
   {id:'upi-smartbuy', cards:['hdfcupi'], name:'SmartBuy flights and hotels (₹0.25 per CashPoint; up to 50% of the booking, ₹50,000 a month)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
   {id:'upi-catalogue', cards:['hdfcupi'], name:'Catalogue vouchers and products (₹0.25 per CashPoint; up to 70% of the value)', kind:'Voucher', fixed:0.25, verified:'2026-11-11'},
   {id:'neu-brands', cards:['neu'], name:'Tata Neu app brands and Taj/IHCL (BigBasket, Croma, Tata CLiQ, 1mg, Westside)', kind:'Fixed value', fixed:1, verified:'2026-11-10'},
@@ -728,6 +739,7 @@ function normalize(s){
     Object.keys(DEFAULT_MILES).forEach(k => { if(DEFAULT_MILES[k].typ != null && (!s.miles[k] || s.miles[k].typ == null)){ s.miles[k] = clone(DEFAULT_MILES[k]); mv++; } });
     const have = new Set(s.options.map(o => o.id)); let n = 0;
     DEFAULT_OPTIONS.forEach(d => { if(!have.has(d.id)){ s.options.push(clone(d)); n++; } });
+    s.options.forEach(o => { if(o.id === 'upi-statement' && /minimum 500 CashPoints/.test(o.name)) o.name = o.name.replace('minimum 500 CashPoints', 'minimum 2,000 CashPoints, which is ₹500'); });
     s.optionsVersion = OPTIONS_VERSION;
     s.audit.unshift({ts:nowIST(), user:s.userName, role:'Admin', action:'MIGRATE', record:'Rate table', field:'New cards and routes', old:String(fromV), nw:OPTIONS_VERSION + ': added ' + n + ' options and ' + mv + ' mile values'});
     try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){}
@@ -1467,9 +1479,79 @@ function renderCardChips(){
     refreshAll();
   });
 }
+const CARD_RULES_BASE = 'https://cardadvisor.in/cards/';
+
+/* earning rules per card: what earns nothing, caps, milestones, fee. Read-only reference with sources. Rules change often. */
+const CARD_RULES = {
+  pt:{src:['CardAdvisor', 'amex-platinum-travel'], asOf:'24 Oct 2026',
+    none:['Fuel', 'Insurance', 'Utility bills', 'Cash advances', 'Merchant EMI at the point of sale (post-purchase and SafeKey EMI still earn)'],
+    caps:['Bonus points on e-vouchers bought through ShopWise: 25,000 bonus points a month'],
+    miles:['₹4,00,000 a year: 10,000 bonus MR points (about ₹5,000 on the Platinum Travel Collection)', '₹7,00,000 a year: a ₹20,000 Taj Experiences e-Gift Card, one use only, unused balance is lost', 'The ₹1.9 lakh tier has paid nothing since 10 Sep 2026'],
+    fee:'₹5,900 with GST. No spend-based waiver.', note:'From 15 Nov 2026, milestone spend counts by the date it posts, not the purchase date.'},
+  mrcc:{src:['CardAdvisor', 'amex-mrcc'], asOf:'24 Oct 2026',
+    none:['Fuel', 'Insurance', 'Utility bills', 'Cash advances', 'Merchant EMI at the point of sale (post-purchase and SafeKey EMI still earn)'],
+    caps:['No earn caps listed. Base rate is 1 MR point per ₹50.'],
+    miles:['Each month: 1,000 bonus MR points for four transactions of ₹1,500 or more', 'Each month: 1,000 bonus MR points for ₹20,000 of spend (enrolment needed)'],
+    fee:'₹5,310 with GST. Waived at ₹1,50,000 spend in the year.', note:'The 50% waiver at ₹90,000 is withdrawn from 15 Nov 2026. From that date milestones count by posting date and are credited by the end of that month.'},
+  atlas:{src:['CardAdvisor', 'axis-atlas'], asOf:'24 Oct 2026',
+    none:['Rent', 'Fuel', 'Utility bills', 'Insurance', 'Government and tax', 'Wallet loads', 'Gold and jewellery', 'Tolls and road fees', 'Gift cards and vouchers'],
+    caps:['Travel earns 5 EDGE Miles per ₹100 only up to ₹2 lakh a month, then 2 per ₹100', 'Online travel agencies (MakeMyTrip, Goibibo, EaseMyTrip) earn only the base 2 per ₹100'],
+    miles:['₹3,00,000 a year: 2,500 EDGE Miles', '₹7,50,000 a year: a further 2,500 EDGE Miles', '₹15,00,000 a year: a further 5,000 EDGE Miles', 'Tier gifts when the fee is paid: Gold (₹7.5 lakh) 2,500 and Platinum (₹15 lakh) 5,000 EDGE Miles'],
+    fee:'₹5,900 with GST. No spend-based waiver.', note:'Gift cards and vouchers do not count toward milestones. The source says new applications are paused.'},
+  bonvoy:{src:['CardAdvisor', 'hdfc-marriott-bonvoy'], asOf:'11 Oct 2026',
+    none:['Fuel', 'Rent', 'Government and tax', 'Wallet loads', 'Online gaming', 'Cash advances', 'Gift cards and vouchers', 'SmartEMI and Dial-an-EMI'],
+    caps:['Travel earn: up to ₹5 lakh of spend a month', 'Marriott hotel stays earn double and are capped at ₹10 lakh a month', 'Groceries: the source gives two different caps, so check with HDFC'],
+    miles:['₹6,00,000 a year: a Free Night Award (up to 15,000 points, valid 12 months, not transferable)', '₹9,00,000 a year: a second Free Night Award', '₹15,00,000 a year: a third Free Night Award', 'A Free Night Award also comes on joining and on each renewal'],
+    fee:'₹3,540 with GST. No spend-based waiver.', note:'Fuel, wallet reloads and rent do not count toward milestones. Government payments do count.'},
+  neu:{src:['CardAdvisor', 'hdfc-tata-neu-infinity'], src2:['CardAdvisor (SBI card)', 'sbi-tata-neu-infinity'], asOf:'11 Oct 2026',
+    none:['Fuel', 'Wallet loads', 'Rent', 'Government and tax', 'Online gaming', 'Cash advances', 'Gift cards and vouchers', 'SmartEMI and Dial-an-EMI', 'Education paid through third-party apps'],
+    caps:['Insurance, utility bills and groceries earn the base 1.5%, each capped at 2,000 NeuCoins a month', 'Telecom and cable: a separate 2,000 NeuCoins a month', 'UPI: 1.5% only on the Tata Neu UPI ID, 0.5% on others, 500 NeuCoins a month in total'],
+    miles:['₹50,000 spend in a quarter: 2 domestic lounge visits, up to 8 a year (the source is unclear whether it is the same or the previous quarter)', '4 international lounge visits a year with no spend needed'],
+    fee:'₹1,769 with GST. Waived at ₹3,00,000 spend in the card year.', note:'SBI version: merchant EMI and Flexipay also earn nothing, and the lounge condition is ₹75,000 spend in the previous quarter.'},
+  infinia:{src:['CardAdvisor', 'hdfc-infinia'], asOf:'24 Oct 2026',
+    none:['Fuel', 'Rent', 'Government and tax', 'Wallet loads', 'EMI conversions', 'Education paid through third-party apps', 'Property management and maintenance'],
+    caps:['Groceries: 2,000 points a month', 'Utility bills: 2,000 points a month', 'Insurance: 10,000 points a month', 'SmartBuy travel: 15,000 points a month, of which brand vouchers 3,000', 'At most 2,00,000 points in a statement cycle'],
+    miles:['₹10,00,000 a year waives the renewal fee', '12,500 points on renewal, only when the fee is actually charged', 'From FY2026-27 keeping the card needs ₹18 lakh a year on all cards, or ₹50 lakh with HDFC. Otherwise it may be downgraded in 2027.'],
+    fee:'₹14,750 with GST. Waived at ₹10,00,000 spend in the year.', note:'Categories that earn nothing are normally left out of milestone and fee-waiver spend.'},
+  millennia:{src:['CardAdvisor', 'hdfc-millennia'], asOf:'24 Oct 2026',
+    none:['Fuel', 'Rent', 'EMI, wallet loads and government spends (not even the 1% base)', 'Online skill-based gaming, since 1 Jul 2025'],
+    caps:['5% partner brands: 1,000 points a month, and only 1% when paid through PayZapp or SmartBuy', '1% base: 1,000 points a month', 'Uber earns 5% on rides only', 'Statement-credit redemption: 3,000 CashPoints a month'],
+    miles:['₹1,00,000 spend in a quarter: a ₹1,000 voucher or a domestic lounge visit (the source is unclear whether it is the same or the previous quarter)', 'About ₹4,000 a year if all four quarters are cleared'],
+    fee:'₹1,180 with GST. Waived at ₹1,00,000 spend in the year.', note:'Fuel and rent are normally left out of milestone and fee-waiver spend.'},
+  hdfcupi:{src:['CardAdvisor', 'hdfc-upi-rupay'], asOf:'1 Oct 2026',
+    none:['Fuel', 'Rent', 'Insurance', 'Education', 'Government and tax', 'Wallet loads', 'EMI conversions', 'Gift cards', 'Online skill-based gaming, since 1 Jul 2025'],
+    caps:['Groceries, supermarkets, dining and PayZapp: 3 CashPoints per ₹100', 'Utility bills: 2 per ₹100', 'Everything else including UPI: 1 per ₹100', 'Each category is capped at 500 CashPoints a month'],
+    miles:['No milestone rewards beyond the fee waiver'],
+    fee:'₹117 with GST. Renewal waived at ₹25,000 retail spend from year two. The joining fee cannot be waived.', note:'Statement credit needs at least 2,000 CashPoints (₹500).'},
+  select:{src:['CardAdvisor', 'axis-select'], asOf:'11 Oct 2026',
+    none:['Rent', 'Wallet loads', 'Fuel', 'Gold and jewellery', 'Government and tax', 'Utility bills and telecom', 'Insurance', 'Education', 'Tolls and road fees', 'Gift cards and vouchers'],
+    caps:['Retail shopping earns about 2% on up to ₹20,000 a month, then about 1%', 'All other spend earns about 1%'],
+    miles:['₹3,00,000 a year: 5,000 EDGE Reward Points (about ₹1,000), 6 extra golf rounds and more international lounge visits (up to 12 a year)', '₹50,000 in the previous quarter: 2 domestic lounge visits a quarter', 'From 1 Nov 2026 the movie offer needs ₹25,000 spend in the previous 3 months'],
+    fee:'₹3,540 with GST. Waived at ₹8,00,000 spend in the year.', note:'The no-earn categories do not count toward the ₹3 lakh milestone or the waiver (from 1 Oct 2026).'},
+  amazonpay:{src:['CardAdvisor', 'icici-amazon-pay'], asOf:'11 Oct 2026',
+    none:['Fuel', 'Rent', 'EMIs', 'Cash', 'Education', 'Tax payments', 'Gold and silver', 'Gold coins and flights or hotels booked through Amazon Pay', 'Utility bills paid outside Amazon'],
+    caps:['Amazon: 5% for Prime, 3% for non-Prime', 'Amazon Pay partners, digital and gift cards: 2%', 'Everything else: 1%', 'No caps listed', 'Sources disagree on international spends and on utility bills, so check with ICICI'],
+    miles:['No milestones'],
+    fee:'Free for life. Extra charges since Jan 2026: 1% on wallet loads of ₹5,000 or more, 2% on skill-based gaming, 1% on transport over ₹50,000 a transaction.', note:'Cashback is paid as Amazon Pay balance and is not cash.'}
+};
+function renderRules(){
+  const el = document.getElementById('rules'); if(!el) return;
+  const ks = Object.keys(PROGRAMS).filter(k => state.cards[k] && CARD_RULES[k]);
+  const sv = document.getElementById('rulesSum'); if(sv) sv.textContent = ks.length + (ks.length === 1 ? ' card' : ' cards');
+  const ul = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+  el.innerHTML = ks.map(k => { const r = CARD_RULES[k];
+    return `<details class="rl"><summary>${esc(PROGRAMS[k].name)}</summary><div class="rlb">
+      <p class="label">Earns no points</p>${ul(r.none)}
+      <p class="label">Rates and caps</p>${ul(r.caps)}
+      <p class="label">Milestones</p>${ul(r.miles)}
+      <p class="label">Annual fee</p><p class="small" style="margin:0">${esc(r.fee)}</p>
+      ${r.note ? '<p class="small" style="margin:6px 0 0">' + esc(r.note) + '</p>' : ''}
+      <p class="small" style="margin:6px 0 0"><a href="${CARD_RULES_BASE + r.src[1]}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(r.src[0])}</a>${r.src2 ? ' · <a href="' + CARD_RULES_BASE + r.src2[1] + '" target="_blank" rel="noopener" style="color:var(--accent)">' + esc(r.src2[0]) + '</a>' : ''} · page dated ${esc(r.asOf)}</p></div></details>`; }).join('') || '<p class="note" style="margin:0">Tick a card in Settings → Cards and programs to see its rules.</p>';
+}
+
 function refreshAll(){
   document.getElementById('userName').textContent = state.userName;
-  renderCardChips(); renderBalances(); renderExample(); renderFilter(); renderBest(); renderCalcSelect(); renderCalc(); renderPrograms(); renderMiles(); renderLinks(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit(); renderBackupNote(); renderExpiry();
+  renderCardChips(); renderBalances(); renderExample(); renderFilter(); renderBest(); renderCalcSelect(); renderCalc(); renderPrograms(); renderMiles(); renderLinks(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit(); renderBackupNote(); renderExpiry(); renderRules();
 }
 
 /* programs tab */
