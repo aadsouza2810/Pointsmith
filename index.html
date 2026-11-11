@@ -1,0 +1,2155 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Points Value Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column; summary (top 5 + best plan) before detail (rates, check, audit) */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --fg:#17201d; --muted:#5d6b66; --line:#dbe2df;
+  --accent:#0d6b57; --accent-soft:#e1f0eb;
+  --good:#127a3e; --good-bg:#e3f4ea; --fair:#9a6400; --fair-bg:#fbf0d9; --poor:#b3372b; --poor-bg:#fbe6e3;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201d; --fg:#e6ece9; --muted:#97a6a0; --line:#2a3531;
+  --accent:#4cc3a3; --accent-soft:#16332b;
+  --good:#5fd08c; --good-bg:#15301f; --fair:#e7b453; --fair-bg:#33280f; --poor:#f08a7f; --poor-bg:#3a1a17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201d; --fg:#e6ece9; --muted:#97a6a0; --line:#2a3531;
+  --accent:#4cc3a3; --accent-soft:#16332b;
+  --good:#5fd08c; --good-bg:#15301f; --fair:#e7b453; --fair-bg:#33280f; --poor:#f08a7f; --poor-bg:#3a1a17; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:grid;gap:20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.head-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#refreshBtn{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:5px 12px;font-size:.8rem}
+#refreshBtn svg{width:15px;height:15px}
+#refreshBtn.busy svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#refreshBtn.busy svg{animation:none}}
+.refresh-msg{flex-basis:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.85rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font:700 1.6rem/1.1 var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font:600 1.1rem/1.2 var(--f-display);margin:0}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.user{font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 10px;white-space:nowrap}
+.user b{color:var(--fg);font-weight:600}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+
+/* balances */
+.balances{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.bal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px}
+.bal input{width:100%;font:600 1.15rem var(--f-num);border:1px solid var(--line);border-radius:7px;padding:7px 9px;background:var(--bg);color:var(--fg)}
+.bal .unit{font-size:.75rem;color:var(--muted)}
+.bal input.exp{font:500 .85rem var(--f-num);padding:6px 8px}
+.example{font-size:.78rem;color:var(--fair);background:var(--fair-bg);border-radius:7px;padding:6px 10px}
+@media (max-width:560px){.balances{grid-template-columns:1fr}}
+
+/* tabs */
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{font:500 .92rem var(--f-body);background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 .82rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+
+/* top 5 */
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rank li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.rank .pos{font:600 1rem var(--f-num);color:var(--muted)}
+.rank .what{min-width:0}
+.rank .what strong{display:block;font-weight:600}
+.rank .meta{font-size:.8rem;color:var(--muted)}
+.rank .vpp{text-align:right}
+.rank .vpp .big{font:600 1.35rem/1 var(--f-num);color:var(--accent)}
+.rank .vpp .per{font-size:.72rem;color:var(--muted)}
+.rank .foot{grid-column:2/4;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--muted)}
+.pill{font-size:.7rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px}
+.pill.good{color:var(--good);background:var(--good-bg)}.pill.fair{color:var(--fair);background:var(--fair-bg)}.pill.poor{color:var(--poor);background:var(--poor-bg)}
+
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.plan-card{display:grid;gap:4px;padding-top:10px;border-top:1px solid var(--line)}
+.plan-card:first-of-type{border-top:0;padding-top:0}
+.plan-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:600}
+.plan-line{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;color:var(--muted)}
+.plan-line span:first-child{min-width:0}
+.total{font:600 1.05rem var(--f-num);color:var(--accent)}
+.avoid{font-size:.85rem;color:var(--muted)}
+.avoid b{color:var(--poor);font-weight:600}
+
+/* tables */
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--bg);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td input{width:76px;font:500 .85rem var(--f-num);border:1px solid var(--line);border-radius:6px;padding:4px 6px;background:var(--bg);color:var(--fg)}
+td.r,th.r{text-align:right}
+.small{font-size:.78rem;color:var(--muted)}
+.row-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font:600 .85rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;padding:7px 12px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.danger{color:var(--poor);border-color:var(--poor)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+
+/* calculator */
+.form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form label{display:grid;gap:4px;font-size:.8rem;color:var(--muted);font-weight:500}
+.form input,.form select{font:500 1rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--bg);color:var(--fg);width:100%}
+.form .full{grid-column:1/-1}
+.result{grid-column:1/-1;border-top:1px solid var(--line);padding-top:12px;display:grid;gap:4px}
+.result .big{font:600 1.8rem/1 var(--f-num);color:var(--accent)}
+@media (max-width:560px){.form{grid-template-columns:1fr}}
+.note{font-size:.8rem;color:var(--muted);max-width:68ch}
+.search{display:grid;gap:6px}
+.search-row{display:flex;gap:8px;flex-wrap:wrap}
+.search-row input{flex:1 1 200px;min-width:0;font:500 1rem var(--f-body);border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);color:var(--fg)}
+.sres{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.sres p{margin:0}
+.sres .rank li{background:var(--bg)}
+.sres .badge{font-size:.72rem;color:var(--muted)}
+.deal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:5px}
+.deal .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.deal h3{font:600 .98rem/1.3 var(--f-body);margin:0;min-width:0}
+.deal p{margin:0;font-size:.86rem;color:var(--muted)}
+.deal .act{color:var(--fg)}
+.deal .meta{font-size:.76rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.deal .meta a{color:var(--accent)}
+.pill.none{color:var(--muted);background:var(--bg);border:1px solid var(--line)}
+a.chip{text-decoration:none;display:inline-block}
+.prog td input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent)}
+.prog td input.bal{width:110px}
+.prog td input:disabled{opacity:.45}
+.setup-name{display:grid;gap:4px;max-width:320px}
+.setup-name input{font:500 1rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--surface);color:var(--fg)}
+.backup{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.backup .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+textarea.out{width:100%;min-height:120px;font:500 .78rem var(--f-num);border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--fg)}
+.note a{color:var(--accent)}
+.notice{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.85rem;display:grid;gap:6px}
+.notice b{font-weight:600}
+.notice details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.notice ol{margin:6px 0 0;padding-left:20px;display:grid;gap:3px;color:var(--muted)}
+/* redesign: four sections, headline, folds, phone layout */
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+nav#tabs button{display:inline-flex;align-items:center;gap:7px}
+nav#tabs svg{width:17px;height:17px;flex:none}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:4px}
+.hero .big{font:600 2.2rem/1.05 var(--f-num);color:var(--accent);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero .sub{margin:0}
+#expiry{display:grid;gap:8px}#expiry:empty,#nextTrip:empty{display:none}
+.exp-alert{display:flex;gap:6px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--fair-bg);color:var(--fair);border-radius:10px;padding:10px 14px;font-size:.85rem}
+.exp-alert.poor{background:var(--poor-bg);color:var(--poor)}
+.exp-alert .btn{padding:4px 10px}
+.fold{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.fold>summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary h2{font-size:1rem;margin-right:auto}
+.fold>summary .sumval{font:600 .95rem var(--f-num);color:var(--accent);white-space:nowrap}
+.fold>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:-4px 2px 0 4px;flex:none}
+.fold[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
+.fold[open]>summary{border-bottom:1px solid var(--line)}
+.fold>.body{padding:14px;display:grid;gap:10px}
+.fold .plan{background:none;border:0;padding:0}
+.fold .tbl{border-radius:8px}
+.balrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-right:auto;min-width:0}
+.bpill{display:inline-flex;gap:6px;align-items:baseline;border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:.8rem;background:var(--bg);white-space:nowrap}
+.bpill b{font:600 .82rem var(--f-num)}
+.edit{font-size:.8rem;font-weight:600;color:var(--accent);white-space:nowrap}
+.searchbox:not(.open) .s-extra{display:none}
+.s-extra{display:grid;gap:8px}
+.wizard{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:16px;display:grid;gap:12px}
+.picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.pick{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);cursor:pointer;font-weight:500}
+.pick input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.wizard .bal{background:var(--bg)}
+.wizard .bal input{background:var(--surface)}
+.steps{display:flex;gap:6px}
+.steps i{width:26px;height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.pill{white-space:nowrap}
+.deal .top{flex-wrap:wrap}
+@media (max-width:640px){
+  nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);border-bottom:0;gap:0;overflow:visible;
+    padding:4px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+  nav#tabs button{flex:1;display:grid;justify-items:center;gap:2px;font-size:.72rem;padding:6px 2px;border-bottom:0}
+  nav#tabs button[aria-selected="true"]{color:var(--accent)}
+  nav#tabs svg{width:22px;height:22px}
+  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+  .hero .big{font-size:1.9rem}
+  #planForm{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #planForm label{align-content:end}
+  .tbl{background:none;border:0;overflow:visible}
+  .tbl table,.tbl tbody{display:block}
+  .tbl thead{display:none}
+  .tbl tr{display:grid;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .tbl tr:last-child{margin-bottom:0}
+  .tbl td{display:flex;justify-content:space-between;align-items:center;gap:14px;border:0;padding:2px 0;text-align:right;min-width:0!important;overflow-wrap:anywhere}
+  .tbl td[data-th]::before{content:attr(data-th);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font:600 .68rem var(--f-body);text-align:left;flex:none}
+  .tbl td[data-th=""]::before{content:none}
+  .tbl td:first-child{font-weight:600;text-align:left;justify-content:flex-start;font-size:.92rem}
+  .tbl td:first-child::before{content:none}
+  .tbl td:empty{display:none}
+  .tbl tr>th{display:block;background:none;padding:0;border:0}
+  .tbl.prog td:first-child{justify-content:space-between}
+  .tbl.prog td:first-child::before{content:attr(data-th)}
+  .fold .tbl tr{background:var(--bg)}
+}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:.85rem}
+@media (prefers-reduced-motion:no-preference){.rank li{transition:border-color .15s}.rank li:hover{border-color:var(--accent)}}
+</style>
+
+</head><body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Points Value Finder</h1>
+      <p class="sub">Where each point is worth the most, in ₹ per point.</p>
+    </div>
+    <div class="head-right">
+      <button class="btn" id="refreshBtn" type="button" title="Check for newer deals, rates and award prices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg><span>Refresh data</span></button>
+      <span class="user" title="Entitlement: Admin can edit balances and rates">Signed in as <b id="userName">You</b> · Admin</span>
+    </div>
+    <div class="refresh-msg" id="refreshMsg" aria-live="polite" hidden></div>
+  </header>
+
+  <aside class="notice" aria-label="About this copy">
+    <div><b>Works in your browser only.</b> Everything you enter is saved on this device in this browser, and nothing you enter is sent anywhere. Clearing your browser data, or opening the file in another browser or on another device, starts you from a blank slate. Use <b>Settings → Cards and programs → Save backup</b> to keep a copy, and Restore to bring it back.</div>
+    <details><summary>How to use this</summary>
+      <ol>
+        <li>Follow the three setup steps on first use: your cards, balances and programs. Change them any time under Home → Edit, or Settings.</li>
+        <li>Home shows what your points are worth, the top 5 ways to redeem them in ₹ per point, a plan for your balances, and the value of points you already hold.</li>
+        <li>Trips shows what a route costs in your card points, and whether your balance and yearly cap allow it. Check a booking turns a cash price and a points price into ₹ per point.</li>
+        <li>Rates and mile values are published estimates. Edit any of them and the rankings update.</li>
+        <li>Deals is a snapshot and does not update by itself. Use Settings → Update to refresh it, and confirm every offer on the bank or program site before you transfer.</li>
+      </ol></details>
+  </aside>
+
+  <nav role="tablist" id="tabs" aria-label="Sections">
+    <button role="tab" data-view="home" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg><span>Home</span></button>
+    <button role="tab" data-view="trips" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l18-7-6 15-3-6z"/><path d="M12 15l3-4"/></svg><span>Trips</span></button>
+    <button role="tab" data-view="deals" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7l9 9-7 7-9-9z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg><span>Deals</span></button>
+    <button role="tab" data-view="settings" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Settings</span></button>
+  </nav>
+
+  <section id="wizard" class="wizard" hidden aria-label="First-time setup">
+    <div class="row-actions"><h2 id="wzTitle"></h2><span class="steps" id="wzSteps" aria-hidden="true"></span></div>
+    <p class="note" style="margin:0" id="wzHelp"></p>
+    <div id="wzBody"></div>
+    <div class="row-actions"><button class="btn" id="wzSkip" type="button">Skip setup</button>
+      <div class="chips"><button class="btn" id="wzBack" type="button">Back</button><button class="btn primary" id="wzNext" type="button">Next</button></div></div>
+  </section>
+
+  <section id="sec-search" class="searchbox" aria-label="Smart search" style="display:grid;gap:8px">
+    <form id="sForm" class="search" novalidate>
+      <label class="sr" for="sQ">Ask in your own words</label>
+      <div class="search-row">
+        <input id="sQ" type="search" autocomplete="off" placeholder="Ask anything, e.g. best use of 30,000 Atlas miles for a hotel">
+        <button class="btn primary" id="sGo" type="submit">Search</button>
+        <button class="btn" id="sAsk" type="button" hidden title="Uses your Claude usage">Ask Claude</button>
+        <button class="btn" id="sStop" type="button" hidden>Stop</button>
+      </div>
+    </form>
+    <div class="s-extra">
+    <div class="chips" id="sEx"></div>
+    <details id="sManual" class="small">
+      <summary style="cursor:pointer;color:var(--accent);font-weight:600">Have Claude open? Ask it there and paste the reply</summary>
+      <div class="backup" style="margin-top:8px">
+        <p class="note" style="margin:0">Type your question above, copy it for Claude, then paste Claude's reply here. The page shows it as ranked results.</p>
+        <div class="row"><button class="btn" id="sCopy" type="button">Copy question for Claude</button></div>
+        <textarea id="sReq" class="out" readonly hidden aria-label="Question for Claude"></textarea>
+        <textarea id="sPaste" class="out" placeholder="Paste Claude's reply here" aria-label="Claude's reply"></textarea>
+        <div class="row"><button class="btn primary" id="sShow" type="button">Show answer</button></div>
+        <div class="confirm" id="sManMsg" aria-live="polite"></div>
+      </div>
+    </details>
+    </div>
+    <div id="sOut" aria-live="polite"></div>
+  </section>
+
+  <section id="hero" class="hero" aria-label="Total value">
+    <span class="label">Your points are worth up to</span>
+    <div class="big" id="heroVal">₹0</div>
+    <p class="sub" id="heroSub"></p>
+  </section>
+
+  <section id="expiry" aria-label="Expiring points" aria-live="polite"></section>
+
+  <section id="nextTrip" aria-label="Next trip"></section>
+
+  <section id="sec-bal" aria-label="Balances">
+    <details class="fold" id="balBox">
+      <summary><span class="balrow" id="balSummary"></span><span class="edit">Edit</span></summary>
+      <div class="body">
+        <div class="chips" id="cardChips" role="group" aria-label="Cards I hold"></div>
+        <div class="balances" id="balances"></div>
+        <div class="example" id="exampleNote">These are example balances. Enter your own and the rankings update instantly.</div>
+      </div>
+    </details>
+  </section>
+
+  <section id="tab-best" style="display:grid;gap:14px">
+    <div class="row-actions">
+      <h2>Top 5 ways to redeem</h2>
+      <div class="chips" id="filter"></div>
+    </div>
+    <ol class="rank" id="top5"></ol>
+    <details class="fold">
+      <summary><h2>Best plan for your balances</h2><span class="sumval" id="planSum"></span></summary>
+      <div class="body">
+        <p class="note" style="margin:0">Fills the highest ₹/pt option first, respecting yearly transfer caps, then moves the rest to the next best.</p>
+        <div class="plan" id="plan"></div>
+      </div>
+    </details>
+    <details class="fold">
+      <summary><h2>Your airline and hotel points</h2><span class="sumval" id="walletSum"></span></summary>
+      <div class="body">
+        <p class="note" style="margin:0">Points you already hold in a loyalty program, valued at the ₹ per point in Settings → Rates. Tick the program and enter the balance in Settings → Cards and programs.</p>
+        <div class="plan" id="wallet"></div>
+      </div>
+    </details>
+    <p class="avoid" id="avoid"></p>
+  </section>
+
+  <section id="tab-trips" hidden style="display:grid;gap:14px">
+    <div class="row-actions"><h2>Upcoming trips</h2><button class="btn primary" type="button" id="tAdd">Add a trip</button></div>
+    <p class="note" style="margin:0">Add where you are going and when. For each trip the tool finds the best way to pay in points, uses points you already hold, warns you if they expire before you travel, and shows deals that mention the place.</p>
+    <form class="form" id="tForm" hidden novalidate>
+      <label class="full">Where are you going?<input id="tDest" list="placeList" maxlength="60" placeholder="e.g. Singapore, London, Goa" autocomplete="off"></label>
+      <datalist id="placeList"></datalist>
+      <label>From<input id="tStart" type="date"></label>
+      <label>To<input id="tEnd" type="date"></label>
+      <label>Travellers<select id="tPax"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label>Rooms<select id="tRooms"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+      <label class="full">I need <span class="chips" role="group" aria-label="What to plan"><button type="button" class="chip" id="tFly" aria-pressed="true">Flights</button><button type="button" class="chip" id="tStay" aria-pressed="true">Hotel</button></span></label>
+      <label>Cabin<select id="tCabin"></select></label>
+      <label>Flight<select id="tWay"><option value="2">Return</option><option value="1">One way</option></select></label>
+      <label>Cash fare for all travellers (₹, optional)<input id="tCashF" inputmode="decimal" placeholder="e.g. 60000"></label>
+      <label>Cash room rate for the whole stay (₹, optional)<input id="tCashH" inputmode="decimal" placeholder="e.g. 45000"></label>
+      <div class="full row"><button class="btn primary" type="submit" id="tSave">Save trip</button><button class="btn" type="button" id="tCancel">Cancel</button></div>
+    </form>
+    <div id="tList" style="display:grid;gap:10px" aria-live="polite"></div>
+    <details class="fold" id="tRs">
+      <summary><h2>Research prices for a trip</h2></summary>
+      <div class="body">
+        <p class="note" style="margin:0" id="tRsIntro">Use this when a trip shows no price on file. Choose a trip with the Research button on its card.</p>
+        <div id="tRsBody" hidden style="display:grid;gap:10px">
+          <p class="note" style="margin:0">1. Copy the request, paste it into a Claude chat that can search the web, and wait for the reply.</p>
+          <div class="row"><button class="btn primary" id="tRsCopy" type="button">Copy request for Claude</button></div>
+          <div class="confirm" id="tRsMsg" aria-live="polite"></div>
+          <textarea id="tRsReq" class="out" readonly hidden aria-label="Request for Claude"></textarea>
+          <p class="note" style="margin:0">2. Paste Claude's reply. You see every price and its source before anything is saved.</p>
+          <textarea id="tRsPaste" class="out" placeholder="Paste Claude's reply here" aria-label="Claude's reply"></textarea>
+          <div class="row"><button class="btn primary" id="tRsPreview" type="button">Preview prices</button></div>
+          <div id="tRsOut" aria-live="polite" style="display:grid;gap:8px"></div>
+        </div>
+      </div>
+    </details>
+    <details class="fold" id="tPast" hidden><summary><h2>Past trips</h2></summary><div class="body" id="tPastBody"></div></details>
+  </section>
+
+  <section id="tab-plan" hidden style="display:grid;gap:14px">
+    <h2>Trip planner</h2>
+    <p class="note" style="margin:0">Pick a flight route and cabin, or a hotel, to see what it costs in your card points, and whether your balance and yearly cap allow it. Miles you already hold in that airline are used first, and only the shortfall comes from a card. Add a cash fare to see the ₹ per point.</p>
+    <form class="form" id="planForm" novalidate>
+      <label class="full">Plan a<select id="pMode"><option value="flight">Flight</option><option value="hotel">Hotel stay</option></select></label>
+      <label class="full"><span id="tRoute">Route</span><select id="pRoute"></select></label>
+      <label id="lCabin">Cabin<select id="pCabin"></select></label>
+      <label><span id="tPax">Travellers</span><select id="pPax"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label id="lTrip">Trip<select id="pTrip"><option value="1">One way</option><option value="2">Return</option></select></label>
+      <label id="lNights" hidden>Nights<input id="pNights" type="number" min="1" max="30" value="2" inputmode="numeric"></label>
+      <label><span id="tDate">Travel date (optional)</span><input id="pDate" type="date"></label>
+      <label class="full"><span id="tCash">Cash fare for the whole trip on that date (₹, optional)</span><input id="pCash" inputmode="decimal" placeholder="e.g. 85000"></label>
+    </form>
+    <div id="pOut" style="display:grid;gap:8px" aria-live="polite"></div>
+    <details class="fold" id="rankFold">
+      <summary><h2>Best value across routes and hotels</h2></summary>
+      <div class="body">
+        <p class="note" style="margin:0">Every award price on file, priced in your cards' points, for one traveller one way or one room for one night. Enter a typical cash price to see the ₹ per point. Without one, the last column shows the cash price above which your points beat the card's easy option. Taxes and fees are not included, and held airline or hotel points are not used here.</p>
+        <label class="small">Show <select id="rankType"><option value="all">Flights and hotels</option><option value="flight">Flights</option><option value="hotel">Hotels</option></select></label>
+        <div class="tbl"><table>
+          <thead><tr><th>Redemption</th><th>Pay with</th><th class="r">Typical cash price (₹)</th><th class="r">₹ per point</th><th>Call</th></tr></thead>
+          <tbody id="rankRows"></tbody>
+        </table></div>
+      </div>
+    </details>
+    <details class="fold">
+      <summary><h2>Award prices on file, and add your own</h2></summary>
+      <div class="body">
+    <p class="note" style="margin:0">Most programs price awards by date, so only routes with a published or noted price appear in the planner. Add the prices you find.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Route</th><th>Program</th><th>Cabin</th><th class="r">Miles one way, or points per night</th><th>Source</th><th>Checked</th><th></th></tr></thead>
+      <tbody id="awardRows"></tbody>
+    </table></div>
+    <h2 style="font-size:1rem">Add an award price you found</h2>
+    <form class="form" id="aForm" novalidate style="background:var(--bg)">
+      <label>Program<select id="aPartner"></select></label>
+      <label class="full"><span id="aTRoute">Route</span><input id="aRoute" list="routeList" maxlength="80" placeholder="e.g. Mumbai ↔ London" autocomplete="off"></label>
+      <datalist id="routeList"></datalist>
+      <label><span id="aTCabin">Cabin</span><select id="aCabin"></select></label>
+      <label><span id="aTTier">Fare or note (optional)</span><input id="aTier" maxlength="40" placeholder="e.g. Saver" autocomplete="off"></label>
+      <label><span id="aTMiles">Miles needed, one way, per person</span><input id="aMiles" inputmode="numeric"></label>
+      <label class="full"><span id="aTTax">Taxes and fees, one way, per person (₹, optional)</span><input id="aTax" inputmode="decimal"></label>
+      <div class="full"><button class="btn primary" type="submit">Add award price</button></div>
+    </form>
+      </div>
+    </details>
+  </section>
+
+  <section id="tab-deals" hidden style="display:grid;gap:14px">
+    <div class="row-actions"><h2>Deals right now</h2><span class="small" id="dealsStamp"></span></div>
+    <div id="deals" style="display:grid;gap:8px"></div>
+    <h2>Check award seats and rooms</h2>
+    <p class="note" style="margin:0">Award seats and rooms need a login on each program's own site, so this tool cannot read them. Search there first, then enter the points and cash price in Check a booking on the Trips page to see the real ₹ per point.</p>
+    <div class="chips" id="awardLinks"></div>
+  </section>
+
+  <div class="chips" id="setNav" hidden role="group" aria-label="Settings sections">
+    <button type="button" class="chip" data-set="setup" aria-pressed="true">Cards and programs</button>
+    <button type="button" class="chip" data-set="rates" aria-pressed="false">Rates</button>
+    <button type="button" class="chip" data-set="update" aria-pressed="false">Update</button>
+    <button type="button" class="chip" data-set="audit" aria-pressed="false">Audit trail</button>
+  </div>
+
+  <section id="tab-update" hidden style="display:grid;gap:14px">
+    <h2>Refresh the parts that need Claude</h2>
+    <p class="note" style="margin:0">This page cannot reach Claude by itself. To refresh deals, rates, mile values and award prices, let Claude research them in a Claude chat, then bring the reply back here. Nothing you do on this page is sent anywhere.</p>
+    <div class="backup">
+      <h2 style="font-size:1rem">1. Ask Claude</h2>
+      <p class="note" style="margin:0">Copy the request, paste it into a Claude chat that can search the web, and wait for the reply.</p>
+      <div class="row"><button class="btn primary" id="uCopy" type="button">Copy request for Claude</button></div>
+      <div class="confirm" id="uCopyMsg" aria-live="polite"></div>
+      <textarea id="uReq" class="out" readonly hidden aria-label="Request for Claude"></textarea>
+    </div>
+    <div class="backup">
+      <h2 style="font-size:1rem">2. Bring the answer back</h2>
+      <p class="note" style="margin:0">Paste Claude's reply, or load an update file someone sent you. You see every change before anything is applied.</p>
+      <textarea id="uPaste" class="out" placeholder="Paste Claude's reply here" aria-label="Claude's reply"></textarea>
+      <div class="row"><button class="btn primary" id="uPreview" type="button">Preview changes</button><button class="btn" id="uPick" type="button">Load update file</button><input id="uFile" type="file" accept=".json,application/json" hidden></div>
+      <div id="uResult" aria-live="polite" style="display:grid;gap:8px"></div>
+    </div>
+    <div class="backup">
+      <h2 style="font-size:1rem">Data feed for the Refresh button</h2>
+      <p class="note" style="margin:0">The Refresh data button at the top checks this web address for a newer update file. Paste the link to a hosted update file here. Leave it empty to refresh by hand with the steps above.</p>
+      <div class="row"><input id="feedUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…/points-value-feed.json" aria-label="Data feed address" style="flex:1 1 240px;min-width:0;font:500 .9rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--bg);color:var(--fg)"><button class="btn" id="feedSave" type="button">Save address</button></div>
+      <div class="confirm" id="feedMsg" aria-live="polite"></div>
+    </div>
+    <div class="backup">
+      <h2 style="font-size:1rem">Share your latest data</h2>
+      <p class="note" style="margin:0">Save an update file with your current deals, rates, mile values and award prices. It holds no balances, name or audit trail. Friends load it with Load update file, so only one person needs to ask Claude.</p>
+      <div class="row"><button class="btn" id="uSave" type="button">Save update file</button></div>
+      <div class="confirm" id="uSaveMsg" aria-live="polite"></div>
+      <textarea id="uOut" class="out" readonly hidden aria-label="Update file text"></textarea>
+    </div>
+    <p class="small" id="uStatus"></p>
+  </section>
+
+  <section id="tab-rates" hidden style="display:grid;gap:10px">
+    <div class="row-actions">
+      <h2>Rate table</h2>
+      <div id="resetArea"><button class="btn danger" id="resetBtn">Reset to researched rates</button></div>
+    </div>
+    <p class="note" style="margin:0">₹/pt = ratio × the program's ₹ per point (set in the second table), or a fixed ₹ value. Mile values are published estimates and real value depends on the seat you book. Programs with no value yet stay out of the rankings until you set one. Edit any value and it is saved with today's date and an audit entry.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Option</th><th>Card</th><th>Type</th><th class="r">Ratio</th><th class="r">₹ / partner pt</th><th class="r">₹ / pt</th><th>Cap</th><th>Verified</th></tr></thead>
+      <tbody id="rateRows"></tbody>
+    </table></div>
+    <h2>Mile and point values</h2>
+    <p class="note" style="margin:0">What one partner mile or point is worth in ₹. These are published estimates from Indian points blogs, not official values. Clear a value if you do not trust any figure, and that program's options leave the rankings.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Program</th><th class="r">₹ per point</th><th>Source</th><th>Checked</th></tr></thead>
+      <tbody id="mileRows"></tbody>
+    </table></div>
+    <h2>Two-step routes</h2>
+    <p class="note" style="margin:0">Some programs convert into others. The tool chains these with your card transfers and shows a two-step route whenever it beats the direct transfer. Each step is irreversible, and both accounts must be in your name.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>From</th><th>To</th><th class="r">Ratio</th><th>How it works</th><th>Source</th><th>Checked</th></tr></thead>
+      <tbody id="linkRows"></tbody>
+    </table></div>
+  </section>
+
+  <section id="tab-check" hidden style="display:grid;gap:10px">
+    <h2>Check a specific booking</h2>
+    <p class="note" style="margin:0">Found an award flight or hotel night? Enter what it would cost in cash and in points to see its real ₹ per point, and whether to pay cash or use points. You can pay with card points or with airline and hotel points you already hold.</p>
+    <form class="form" id="calc" novalidate>
+      <label class="full">Paying with
+        <select id="cProg"></select></label>
+      <label>Cash price of the same booking (₹)
+        <input id="cCash" inputmode="decimal" value="60000"></label>
+      <label>Points or miles needed
+        <input id="cPts" inputmode="numeric" value="40000"></label>
+      <label class="full">Taxes and fees still paid in cash (₹)
+        <input id="cFees" inputmode="decimal" value="5000"></label>
+      <div class="result" id="cOut" aria-live="polite"></div>
+    </form>
+    <p class="note">Enter the points taken from your card. If the airline quotes miles, divide by the transfer ratio first (e.g. 30,000 Air India miles ÷ 2 = 15,000 EDGE Miles).</p>
+  </section>
+
+  <section id="tab-setup" hidden style="display:grid;gap:14px">
+    <h2>Airline and hotel programs</h2>
+    <p class="note" style="margin:0">Tick the programs where you already have an account. Rankings then tag each option as usable today or needing a sign-up. Joining most programs is free. Balances are valued on Home, and expiry dates raise an alert there. Programs that no card of yours reaches can still be held directly, for example from stays or flights.</p>
+    <div class="setup-name"><label class="small" for="uName">Your name in the audit trail</label><input id="uName" maxlength="40" autocomplete="off"></div>
+    <div class="tbl prog"><table>
+      <thead><tr><th>Have it</th><th>Program</th><th class="r">Balance</th><th>Expires</th><th>Reached from</th></tr></thead>
+      <tbody id="progRows"></tbody>
+    </table></div>
+    <div class="backup">
+      <h2>Backup and restore</h2>
+      <p class="note" style="margin:0" id="syncNote">Saved in this browser only. Use Save backup to keep a copy, for example in your Google Drive or OneDrive.</p>
+      <p class="note" style="margin:0">A backup file is a second copy you hold yourself, and also moves your data to someone else's device.</p>
+      <div class="row">
+        <button class="btn primary" id="bkSave" type="button">Save backup</button>
+        <button class="btn" id="bkPick" type="button">Restore from file</button>
+        <input id="bkFile" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div class="confirm" id="bkMsg" aria-live="polite"></div>
+      <textarea id="bkText" class="out" readonly hidden aria-label="Backup text"></textarea>
+    </div>
+  </section>
+
+  <section id="tab-audit" hidden style="display:grid;gap:10px">
+    <h2>Audit trail</h2>
+    <p class="note" style="margin:0">Every change to balances and rates, newest first. Entries cannot be edited.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Timestamp (IST)</th><th>User</th><th>Role</th><th>Action</th><th>Record</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+      <tbody id="auditRows"></tbody>
+    </table></div>
+  </section>
+
+  <p class="note">For information only, not financial advice. Rates, ratios and caps change often, so confirm with the bank or program before you transfer. Rates researched 20 Oct 2026 from Amex India and Axis Travel EDGE coverage. Transfers cannot be reversed: confirm the ratio on the bank's portal and find the seat or room before you move points.
+    Sources: <a href="https://magnify.club/guides/amex-india-transfer-partners/" target="_blank" rel="noopener">Amex India partners</a> ·
+    <a href="https://www.pickmycard.in/blog/axis-edge-transfer-partners-september-2026" target="_blank" rel="noopener">Axis Sep 2026 ratios</a> ·
+    <a href="https://magnify.club/guides/axis-accor-returns-miles-and-more-september-2026/" target="_blank" rel="noopener">Axis groups and caps</a> ·
+    <a href="https://www.americanexpress.com/in/rewards/membership-rewards/redeem-points/gold-collection.html" target="_blank" rel="noopener">Amex Gold Collection</a> ·
+    <a href="https://cardadvisor.in/articles/tata-neucoins-guide" target="_blank" rel="noopener">Tata NeuCoins</a> ·
+    <a href="https://cardadvisor.in/articles/marriott-bonvoy-hdfc-credit-card-review-2026" target="_blank" rel="noopener">HDFC Marriott Bonvoy</a> ·
+    <a href="https://magnify.club/guides/marriott-bonvoy-airline-transfer-partners/" target="_blank" rel="noopener">Bonvoy airline transfers</a> ·
+    <a href="https://cardadvisor.in/articles/hdfc-reward-points-transfer-guide" target="_blank" rel="noopener">HDFC Infinia transfers</a> ·
+    <a href="https://all.accor.com/a/en/loyalty-program/partners/airlines/japanairlines.html" target="_blank" rel="noopener">JAL to Accor</a></p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const USER = {role:'Admin'};
+const CAN_EDIT = USER.role === 'Admin';
+const PROGRAMS = {
+  pt:   {name:'Amex Platinum Travel', unit:'MR points'},
+  mrcc: {name:'Amex MRCC', unit:'MR points'},
+  atlas:{name:'Axis Atlas', unit:'EDGE Miles'},
+  bonvoy:{name:'HDFC Marriott Bonvoy', unit:'Bonvoy points'},
+  neu:  {name:'Tata Neu (HDFC or SBI)', unit:'NeuCoins'},
+  infinia:{name:'HDFC Infinia', unit:'Reward Points'},
+  millennia:{name:'HDFC Millennia', unit:'CashPoints'},
+  hdfcupi:{name:'HDFC UPI RuPay', unit:'CashPoints'}
+};
+const DEFAULT_CARDS = {pt:true, mrcc:true, atlas:true, bonvoy:false, neu:false, infinia:false, millennia:false, hdfcupi:false};
+const CAPS = {
+  atlasA:{label:'Group A · 30,000/yr', limit:30000},
+  atlasB:{label:'Group B · 1,20,000/yr', limit:120000}
+};
+const AMEX = ['pt','mrcc'];
+const clone = x => JSON.parse(JSON.stringify(x));
+// airline and hotel loyalty programs reachable by transfer
+const PARTNERS = [
+  {k:'air-india', name:'Air India Maharaja Club', type:'Airline'}, {k:'flying-blue', name:'Flying Blue', type:'Airline'},
+  {k:'krisflyer', name:'Singapore KrisFlyer', type:'Airline'}, {k:'virgin', name:'Virgin Atlantic Flying Club', type:'Airline'},
+  {k:'turkish', name:'Turkish Miles&Smiles', type:'Airline'}, {k:'qatar', name:'Qatar Privilege Club', type:'Airline'},
+  {k:'ba', name:'British Airways Executive Club', type:'Airline'}, {k:'etihad', name:'Etihad Guest', type:'Airline'},
+  {k:'cathay', name:'Cathay Asia Miles', type:'Airline'}, {k:'jal', name:'JAL Mileage Bank', type:'Airline'},
+  {k:'united', name:'United MileagePlus', type:'Airline'}, {k:'aeroplan', name:'Air Canada Aeroplan', type:'Airline'},
+  {k:'qantas', name:'Qantas Frequent Flyer', type:'Airline'}, {k:'miles-more', name:'Lufthansa Miles & More', type:'Airline'},
+  {k:'finnair', name:'Finnair Plus', type:'Airline'}, {k:'vietnam', name:'Vietnam Lotusmiles', type:'Airline'},
+  {k:'marriott', name:'Marriott Bonvoy', type:'Hotel'}, {k:'hilton', name:'Hilton Honors', type:'Hotel'}, {k:'accor', name:'Accor ALL', type:'Hotel'},
+  {k:'ihg', name:'IHG One Rewards', type:'Hotel'}, {k:'hyatt', name:'World of Hyatt', type:'Hotel'}, {k:'radisson', name:'Radisson Rewards', type:'Hotel'},
+  {k:'emirates', name:'Emirates Skywards', type:'Airline'}, {k:'indigo', name:'IndiGo BluChip', type:'Airline'}, {k:'thai', name:'Thai Royal Orchid Plus', type:'Airline'},
+  {k:'malaysia', name:'Malaysia Airlines Enrich', type:'Airline'}, {k:'korean', name:'Korean Air SKYPASS', type:'Airline'},
+  {k:'delta', name:'Delta SkyMiles', type:'Airline'}, {k:'aadvantage', name:'American AAdvantage', type:'Airline'}
+];
+const PARTNER_NAME = Object.fromEntries(PARTNERS.map(p => [p.k, p.name]));
+const OPTIONS_VERSION = 6;
+// ratio = partner points per 1 card point. The value of a partner point comes from MILES below. fixed = ₹ per card point.
+const T = (p, id, cards, ratio, cap, verified, kind) => Object.assign({id, cards, partner:p, name:PARTNER_NAME[p], kind:kind || 'Airline transfer', ratio, verified}, cap ? {cap} : {});
+const DEFAULT_OPTIONS = [
+  ...['air-india','krisflyer','flying-blue','aeroplan','turkish','jal','etihad','united','qantas'].map(p => T(p, 'atl-' + p, ['atlas'], 2, 'atlasA', '2026-09-28')),
+  ...['ba','qatar','cathay','finnair','vietnam'].map(p => T(p, 'atl-' + p, ['atlas'], 0.5, 'atlasA', '2026-09-28')),
+  T('miles-more', 'atl-miles-more', ['atlas'], 1, 'atlasB', '2026-09-23'),
+  T('accor', 'atl-accor', ['atlas'], 0.5, 'atlasA', '2026-09-28', 'Hotel transfer'),
+  T('hilton', 'atl-hilton', ['atlas'], 2, 'atlasB', '2026-09-23', 'Hotel transfer'),
+  {id:'atl-bill', cards:['atlas'], name:'Pay card bill / Travel EDGE bookings', kind:'Fixed value', fixed:1, verified:'2026-10-20'},
+  T('virgin', 'amx-virgin', AMEX, 0.8, null, '2026-08-18'),
+  T('marriott', 'amx-marriott', AMEX, 1, null, '2026-08-18', 'Hotel transfer'),
+  T('hilton', 'amx-hilton', AMEX, 1.5, null, '2026-08-18', 'Hotel transfer'),
+  ...['krisflyer','cathay','ba','qatar'].map(p => T(p, 'amx-' + p, AMEX, 0.5, null, '2026-08-18')),
+  {id:'mr-24taj',  cards:['mrcc'], name:'24K Gold Collection · Taj ₹14,000 for 24,000', kind:'Voucher', fixed:0.583, verified:'2026-10-20'},
+  {id:'mr-18taj',  cards:['mrcc'], name:'18K Gold Collection · Taj ₹9,000 for 18,000', kind:'Voucher', fixed:0.5, verified:'2026-10-20'},
+  {id:'mr-18myn',  cards:['mrcc'], name:'18K Gold Collection · Myntra ₹8,000', kind:'Voucher', fixed:0.444, verified:'2026-10-20'},
+  {id:'mr-24amz',  cards:['mrcc'], name:'24K Gold Collection · Amazon/Flipkart ₹8,000', kind:'Voucher', fixed:0.333, verified:'2026-10-20'},
+  {id:'pt-postcard',cards:['pt'], name:'Platinum Travel Collection · Postcard ₹10,000 for 20,000', kind:'Voucher', fixed:0.5, verified:'2025-04-01'},
+  {id:'pt-taj',    cards:['pt'], name:'Platinum Travel Collection · Taj ₹10,000 for 25,000', kind:'Voucher', fixed:0.4, verified:'2025-04-01'},
+  {id:'pt-ai',     cards:['pt'], name:'Platinum Travel Collection · Air India ₹6,000 for 20,000', kind:'Voucher', fixed:0.3, verified:'2025-04-01'},
+  Object.assign(T('marriott', 'bv-marriott', ['bonvoy'], 1, null, '2026-11-10', 'Hotel transfer'), {name:'Marriott Bonvoy hotel stays'}),
+  ...['krisflyer','flying-blue','virgin','turkish','qatar','etihad','cathay'].map(p => T(p, 'bv-' + p, ['bonvoy'], 0.333, null, '2026-11-10')),
+  {id:'inf-smartbuy', cards:['infinia'], name:'SmartBuy flights and hotels (points cover up to 70% of the booking, 75,000 points a month)', kind:'Fixed value', fixed:1, verified:'2026-06-30'},
+  ...['krisflyer','flying-blue','finnair','vietnam'].map(p => T(p, 'inf-' + p, ['infinia'], 1, null, '2026-06-30')),
+  ...['air-india','united','turkish','ba','qatar','cathay','aeroplan','etihad'].map(p => T(p, 'inf-' + p, ['infinia'], 0.5, null, '2026-06-30')),
+  T('accor', 'inf-accor', ['infinia'], 0.5, null, '2026-06-30', 'Hotel transfer'),
+  T('marriott', 'inf-marriott', ['infinia'], 0.5, null, '2026-06-30', 'Hotel transfer'),
+  {id:'mil-statement', cards:['millennia'], name:'Statement credit (₹1 per CashPoint; minimum 500, ₹50 fee per redemption, 3,000 CashPoints a month)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
+  {id:'mil-smartbuy', cards:['millennia'], name:'SmartBuy flights and hotels (₹1 per CashPoint)', kind:'Fixed value', fixed:1, verified:'2026-11-11'},
+  {id:'mil-catalogue', cards:['millennia'], name:'Online rewards catalogue (₹0.30 per CashPoint, ₹99 plus taxes per redemption)', kind:'Voucher', fixed:0.3, verified:'2026-11-11'},
+  {id:'upi-statement', cards:['hdfcupi'], name:'Statement credit (₹0.25 per CashPoint; minimum 500 CashPoints)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
+  {id:'upi-smartbuy', cards:['hdfcupi'], name:'SmartBuy flights and hotels (₹0.25 per CashPoint; up to 50% of the booking, ₹50,000 a month)', kind:'Fixed value', fixed:0.25, verified:'2026-11-11'},
+  {id:'upi-catalogue', cards:['hdfcupi'], name:'Catalogue vouchers and products (₹0.25 per CashPoint; up to 70% of the value)', kind:'Voucher', fixed:0.25, verified:'2026-11-11'},
+  {id:'neu-brands', cards:['neu'], name:'Tata Neu app brands and Taj/IHCL (BigBasket, Croma, Tata CLiQ, 1mg, Westside)', kind:'Fixed value', fixed:1, verified:'2026-11-10'},
+  {id:'amx-pwp',   cards:AMEX, name:'Pay with Points on Amex Travel / statement credit', kind:'Fixed value', fixed:0.25, verified:'2026-10-20'}
+];
+// ₹ per partner mile or point: published estimates, not official values. null = no figure researched yet.
+const M = (typ, src) => ({typ, src, verified:'2026-11-10'});
+const CE = 'CardExpress estimate, 11 Oct 2026';
+const M11 = (typ, src) => ({typ, src, verified:'2026-11-11'});
+const AV = 'CardAdvisor planning baseline of ₹1.00 per Avios, not a measured value. Good awards are worth more.';
+const DEFAULT_MILES = {
+  'air-india': M(0.65, CE + '. Air India cut award prices in April 2026, so this may be low.'),
+  'krisflyer': M(1.25, CE), 'flying-blue': M(1.19, CE), 'virgin': M(1.28, CE),
+  'marriott': M(0.60, 'CardAdvisor estimate (CardExpress says 0.63)'),
+  'hilton': M(0.46, CE),
+  'accor': M(1.78, 'Conservative planning value (CardAdvisor 2.00, CardExpress 2.20)'),
+  'qatar': M(1.00, AV), 'ba': M(1.00, AV), 'finnair': M(1.00, AV),
+  'ihg': M11(0.45, 'CardAdvisor planning estimate, 24 Oct 2026. Not an IHG figure.'),
+  'radisson': M11(0.22, 'CardAdvisor, HDFC transfer guide summary. Verify before relying on it.'),
+  'emirates': M11(1.00, 'CardAdvisor travel-portal value, Jul to Oct 2026. Not a measured award value.'),
+  'indigo': M11(0.42, 'CardAdvisor planning estimate, 27 Oct 2026. IndiGo publishes no rate.'),
+  'hyatt': M(null, ''), 'thai': M(null, ''), 'malaysia': M(null, ''), 'korean': M(null, ''), 'delta': M(null, ''), 'aadvantage': M(null, ''),
+  'turkish': M(null, ''), 'etihad': M(null, ''), 'cathay': M(null, ''), 'jal': M(null, ''),
+  'united': M(null, ''), 'aeroplan': M(null, ''), 'qantas': M(null, ''), 'miles-more': M(null, ''), 'vietnam': M(null, '')
+};
+// award prices (miles, one way, per person) found on published charts and fare sites
+const SRC_KF = ['AwardTravelFinder', 'https://awardtravelfinder.com/how-many-singapore-krisflyer-miles-to-fly-to-mumbai'];
+const SRC_FB = ['Magnify', 'https://magnify.club/guides/flying-blue-promo-rewards-april-2026/'];
+const SRC_FB2 = ['Magnify', 'https://magnify.club/guides/flying-blue-promo-rewards-january-2026/'];
+const SRC_VS = ['CardAdvisor', 'https://cardadvisor.in/articles/virgin-atlantic-flying-club-india-guide'];
+const SRC_AI = ['Magnify', 'https://magnify.club/guides/maharaja-club-april-2026-all-changes/'];
+const A = (id, route, partner, cabin, tier, miles, src, note) => ({id, route, partner, cabin, tier, miles, src, note:note || '', verified:'2026-11-10'});
+const DEFAULT_AWARDS = [
+  A('ks-y-s', 'Mumbai ↔ Singapore', 'krisflyer', 'Economy', 'Saver', 19000, SRC_KF, 'Priced Singapore to Mumbai, assumed the same in reverse.'),
+  A('ks-w-s', 'Mumbai ↔ Singapore', 'krisflyer', 'Premium Economy', 'Saver', 36000, SRC_KF),
+  A('ks-j-s', 'Mumbai ↔ Singapore', 'krisflyer', 'Business', 'Saver', 45000, SRC_KF),
+  A('ks-f-s', 'Mumbai ↔ Singapore', 'krisflyer', 'First', 'Saver', 61500, SRC_KF),
+  A('ks-y-a', 'Mumbai ↔ Singapore', 'krisflyer', 'Economy', 'Advantage', 40500, SRC_KF),
+  A('ks-j-a', 'Mumbai ↔ Singapore', 'krisflyer', 'Business', 'Advantage', 75000, SRC_KF),
+  A('ks-f-a', 'Mumbai ↔ Singapore', 'krisflyer', 'First', 'Advantage', 112500, SRC_KF),
+  A('fb-y', 'India ↔ Europe', 'flying-blue', 'Economy', 'Standard', 30000, SRC_FB2, 'Derived: the January promo price of 22,500 miles is 25% off.'),
+  A('fb-j', 'India ↔ Europe', 'flying-blue', 'Business', 'Standard', 85000, SRC_FB, 'Mumbai to Europe via KLM. Promo months take 25% off.'),
+  A('vs-y-s', 'India ↔ Europe', 'virgin', 'Economy', 'Air France, standard', 15000, SRC_VS),
+  A('vs-y-p', 'India ↔ Europe', 'virgin', 'Economy', 'Air France, peak', 25000, SRC_VS),
+  A('vs-w-s', 'India ↔ Europe', 'virgin', 'Premium Economy', 'Air France, standard', 30000, SRC_VS),
+  A('vs-w-p', 'India ↔ Europe', 'virgin', 'Premium Economy', 'Air France, peak', 40000, SRC_VS),
+  A('vs-j-s', 'India ↔ Europe', 'virgin', 'Business', 'Air France, standard', 61000, SRC_VS),
+  A('vs-j-p', 'India ↔ Europe', 'virgin', 'Business', 'Air France, peak', 71000, SRC_VS),
+  A('ai-y-sea', 'Delhi ↔ Singapore, Bangkok, Dubai or Bali', 'air-india', 'Economy', 'Flat regional tier', 12000, SRC_AI, 'Applies from 1 April 2026.'),
+  A('ai-y-sfo', 'Delhi ↔ San Francisco', 'air-india', 'Economy', 'Flat regional tier', 40000, SRC_AI, 'Was 77,000 before April 2026.')
+];
+// hotel award prices: points per night per room, standard room. Hotel programs price by date, so these are typical figures.
+const H = (route, partner, tier, miles, src, note) => ({id:'h-' + partner + '-' + route.replace(/\W+/g, '').toLowerCase() + '-' + tier.toLowerCase().replace(/\W+/g, ''), route, partner, cabin:'Standard room', tier, miles, src, note:note || '', verified:'2026-11-11'});
+const SRC_MB = ['AwardTravelFinder', 'https://awardtravelfinder.com/award-charts/marriott-bonvoy'];
+const SRC_MBJ = ['AwardTravelFinder', 'https://awardtravelfinder.com/hotels/jw-marriott-mumbai-juhu'];
+const SRC_HY = ['Milelion', 'https://milelion.com/2026/04/25/world-of-hyatt-announces-2026-hotel-category-changes-with-new-award-chart-coming-20-may/'];
+const MBN = 'Third-party summary of the Marriott chart, verified Jun 2026. Marriott prices by date, so check the exact points for your dates.';
+const MB = (cat, who, off, std, peak) => [H('Marriott Bonvoy · Category ' + cat + ' (' + who + ')', 'marriott', 'Off-peak', off, SRC_MB, MBN), H('Marriott Bonvoy · Category ' + cat + ' (' + who + ')', 'marriott', 'Standard', std, SRC_MB, MBN), H('Marriott Bonvoy · Category ' + cat + ' (' + who + ')', 'marriott', 'Peak', peak, SRC_MB, MBN)];
+const HYN = 'Hyatt chart from 20 May 2026 (Lowest, Moderate and Top tiers). The Low and Upper tiers are not listed here.';
+const HY = (cat, lo, mid, top) => [H('World of Hyatt · Category ' + cat, 'hyatt', 'Lowest', lo, SRC_HY, HYN), H('World of Hyatt · Category ' + cat, 'hyatt', 'Moderate', mid, SRC_HY, HYN), H('World of Hyatt · Category ' + cat, 'hyatt', 'Top', top, SRC_HY, HYN)];
+const DEFAULT_HOTEL_AWARDS = [].concat(
+  MB(4, 'Westin, Le Méridien', 20000, 25000, 30000), MB(5, 'JW Marriott, W', 30000, 35000, 40000), MB(6, 'Luxury Collection, EDITION', 40000, 50000, 60000), MB(7, 'St. Regis, Ritz-Carlton', 50000, 60000, 70000),
+  [H('JW Marriott Mumbai Juhu', 'marriott', 'Tracked rate, Mar 2026', 52000, SRC_MBJ, 'The same page also lists a 60,000 standard night. Confirm on Marriott for your dates.')],
+  HY(4, 12000, 20000, 25000), HY(5, 15000, 25000, 35000), HY(6, 20000, 30000, 40000), HY(7, 25000, 35000, 55000));
+// sample cash prices for the ranking view: one traveller one way, or one room one night. Single sample dates, not averages.
+const CASH_REF = {
+  'Mumbai ↔ Singapore|Economy': {cash:12085, note:'Cheapest one way found for Dec 2026', src:['Skyscanner', 'https://www.skyscanner.co.in/routes/ibom/sins/mumbai-to-singapore.html'], verified:'2026-11-11'},
+  'India ↔ Europe|Business': {cash:214000, note:'Cheapest one way (Etihad, about US$2,247 at ₹95.2), Aug 2026 sample', src:['Wego', 'https://blog.wego.com/mumbai-to-london-business-class-ticket-price/'], verified:'2026-11-11'},
+  'JW Marriott Mumbai Juhu|Standard room': {cash:57000, note:'About US$610 for one night near 24 Oct 2026. One date only', src:['Trip.com', 'https://us.trip.com/hotels/mumbai-hotel-detail-2192868/jw-marriott-mumbai-juhu/'], verified:'2026-11-11'}
+};
+// conversions between loyalty programs, used to find two-step routes. ratio = points received per 1 point sent
+const LINKS = [
+  {from:'jal', to:'accor', ratio:0.4, note:'Convert in blocks of 10,000 JAL miles for 4,000 Accor points. A 5,000-mile block gives only 1,000.', src:['Accor', 'https://all.accor.com/a/en/loyalty-program/partners/airlines/japanairlines.html'], verified:'2026-11-11'},
+  {from:'finnair', to:'qatar', ratio:1, note:'Avios move free between Finnair and Qatar. Name, email and date of birth must match on both accounts.', src:['CardAdvisor', 'https://cardadvisor.in/articles/hdfc-reward-points-transfer-guide'], verified:'2026-06-30'},
+  {from:'finnair', to:'ba', ratio:1, note:'Avios move free between Finnair and British Airways. Name, email and date of birth must match on both accounts.', src:['CardAdvisor', 'https://cardadvisor.in/articles/hdfc-reward-points-transfer-guide'], verified:'2026-06-30'}
+];
+const EXAMPLE_BAL = {pt:40000, mrcc:25000, atlas:50000, bonvoy:30000, neu:5000, infinia:60000, millennia:2000, hdfcupi:2000};
+const KEY = 'pvf.v1';
+
+let planGrand = 0, walletTotal = 0, view = 'home', setTab = 'setup';
+let state = load();
+function load(){
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  if(!(s && Array.isArray(s.options))) s = {balances:{...EXAMPLE_BAL}, example:true, options:clone(DEFAULT_OPTIONS), miles:clone(DEFAULT_MILES), optionsVersion:OPTIONS_VERSION, awards:[], audit:[], filter:'all'};
+  return normalize(s);
+}
+function normalize(s){
+  s.cards = Object.assign({}, DEFAULT_CARDS, s.cards || {});
+  s.programs = s.programs || {};
+  if(!s.cardExp || typeof s.cardExp !== 'object') s.cardExp = {};
+  if(!s.cashRef || typeof s.cashRef !== 'object') s.cashRef = {};
+  if(!Array.isArray(s.trips)) s.trips = [];
+  if(s.preferHeld == null) s.preferHeld = true;
+  s.balances = s.balances || {};
+  s.audit = Array.isArray(s.audit) ? s.audit : [];
+  if(!s.filter) s.filter = 'all';
+  if(!s.userName) s.userName = (s.audit[0] && s.audit[0].user) || 'You';
+  if(!s.miles || typeof s.miles !== 'object') s.miles = clone(DEFAULT_MILES);
+  if(!Array.isArray(s.awards)) s.awards = [];
+  if(!Array.isArray(s.deals)) s.deals = null;
+  if(!Array.isArray(s.packAwards)) s.packAwards = null;
+  if(typeof s.dealsChecked !== 'string') s.dealsChecked = null;
+  if((s.optionsVersion || 1) >= 2 && s.optionsVersion < OPTIONS_VERSION){
+    const fromV = s.optionsVersion; let mv = 0;
+    Object.keys(DEFAULT_MILES).forEach(k => { if(DEFAULT_MILES[k].typ != null && (!s.miles[k] || s.miles[k].typ == null)){ s.miles[k] = clone(DEFAULT_MILES[k]); mv++; } });
+    const have = new Set(s.options.map(o => o.id)); let n = 0;
+    DEFAULT_OPTIONS.forEach(d => { if(!have.has(d.id)){ s.options.push(clone(d)); n++; } });
+    s.optionsVersion = OPTIONS_VERSION;
+    s.audit.unshift({ts:nowIST(), user:s.userName, role:'Admin', action:'MIGRATE', record:'Rate table', field:'New cards and routes', old:String(fromV), nw:OPTIONS_VERSION + ': added ' + n + ' options and ' + mv + ' mile values'});
+    try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){}
+  }
+  if((s.optionsVersion || 1) < 2){
+    s.options = clone(DEFAULT_OPTIONS); s.miles = clone(DEFAULT_MILES); s.optionsVersion = OPTIONS_VERSION;
+    s.audit.unshift({ts:nowIST(), user:s.userName, role:'Admin', action:'MIGRATE', record:'Rate table', field:'Version', old:'1', nw:'2: per-program mile values'});
+    try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){}
+  }
+  return s;
+}
+function save(){ state.updatedAt = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} queueCloud(); }
+
+/* programs: airline and hotel loyalty programs reachable by transfer */
+const partnersOf = o => o.partner ? (o.via ? [o.via, o.partner] : [o.partner]) : [];
+const PARTNER_TYPE = Object.fromEntries(PARTNERS.map(p => [p.k, p.type]));
+// two-step routes: card -> program A -> program B, kept only where they beat the direct transfer for that card
+function chainList(){
+  const out = [];
+  state.options.forEach(o => {
+    if(!o.partner || !(o.ratio > 0)) return;
+    const cards = o.cards.filter(c => state.cards[c]); if(!cards.length) return;
+    LINKS.filter(l => l.from === o.partner).forEach(l => {
+      const ratio = +(o.ratio * l.ratio).toFixed(4);
+      const better = cards.filter(c => { const d = state.options.find(x => x.partner === l.to && x.ratio != null && x.cards.includes(c)); return !d || ratio > d.ratio; });
+      if(!better.length) return;
+      out.push(Object.assign({id:o.id + '>' + l.to, cards:better, partner:l.to, via:o.partner, name:PARTNER_NAME[l.to] + ' via ' + PARTNER_NAME[o.partner],
+        kind:PARTNER_TYPE[l.to] === 'Hotel' ? 'Hotel transfer' : 'Airline transfer', ratio, r1:o.ratio, r2:l.ratio, chain:true, note:l.note,
+        verified:o.verified < l.verified ? o.verified : l.verified}, o.cap ? {cap:o.cap} : {}));
+    });
+  });
+  return out;
+}
+const howLine = o => o.fixed != null ? 'Fixed value' : o.chain
+  ? `1 pt → ${o.r1} ${PARTNER_NAME[o.via]} → ${o.ratio} ${PARTNER_NAME[o.partner]} × ₹${fmt(pvOf(o))}`
+  : `1 pt → ${o.ratio} partner pt × ₹${fmt(pvOf(o))}`;
+const chainTag = o => o.chain ? `<span class="pill none" title="${esc(o.note)}">Two steps</span>` : '';
+const myCards = () => Object.keys(PROGRAMS).filter(k => state.cards[k]);
+const liveOptions = () => state.options.map(o => ({...o, cards:o.cards.filter(c => state.cards[c])})).filter(o => o.cards.length).concat(chainList()).filter(o => vpp(o) != null);
+const isHeld = k => !!(state.programs[k] && state.programs[k].held);
+const anyHeld = () => PARTNERS.some(p => isHeld(p.k));
+const heldNames = () => PARTNERS.filter(p => isHeld(p.k)).map(p => p.name);
+const heldPartners = o => partnersOf(o).filter(isHeld);
+const acctState = o => (!partnersOf(o).length || !anyHeld()) ? null : ((o.chain ? heldPartners(o).length === partnersOf(o).length : heldPartners(o).length) ? 'have' : 'needs sign-up');
+const tier = o => (state.preferHeld && acctState(o) === 'needs sign-up') ? 1 : 0;
+function acctTag(o){
+  const a = acctState(o);
+  if(!a) return '';
+  if(a === 'needs sign-up') return '<span class="pill none">Needs sign-up</span>';
+  const names = heldPartners(o).map(k => PARTNER_NAME[k]);
+  return `<span class="pill good" title="${esc(names.join(', '))}">Have: ${esc(names[0])}${names.length > 1 ? ' +' + (names.length - 1) : ''}</span>`;
+}
+
+const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+const pts = n => Math.round(n).toLocaleString('en-IN');
+const milesTyp = k => { const m = state.miles && state.miles[k]; return m && typeof m.typ === 'number' ? m.typ : null; };
+const pvOf = o => o.partner ? milesTyp(o.partner) : null;
+const vpp = o => { if(o.fixed != null) return o.fixed; const p = pvOf(o); return p == null ? null : o.ratio * p; };
+const grade = v => v >= 1 ? ['good','Great'] : v >= 0.5 ? ['fair','Fair'] : ['poor','Poor'];
+const fmt = v => v.toFixed(2);
+function nowIST(){
+  const d = new Date(Date.now() + (330 + new Date().getTimezoneOffset()) * 60000);
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function today(){ return nowIST().slice(0,10); }
+function audit(action, record, field, oldV, newV){
+  state.audit.unshift({ts:nowIST(), user:state.userName, role:USER.role, action, record, field, old:String(oldV ?? '—'), nw:String(newV ?? '—')});
+  save();
+}
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(()=>t.hidden = true, 1800); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* balances */
+function renderBalances(){
+  const el = document.getElementById('balances');
+  el.innerHTML = Object.entries(PROGRAMS).filter(([k]) => state.cards[k]).map(([k,p]) => `
+    <div class="bal"><label class="label" for="bal-${k}">${p.name}</label>
+      <input id="bal-${k}" class="num" inputmode="numeric" value="${pts(state.balances[k]||0)}" ${CAN_EDIT?'':'disabled'}>
+      <span class="unit">${p.unit}</span>
+      <label class="unit" for="exp-${k}">Points expire on (optional)</label>
+      <input id="exp-${k}" class="exp" type="date" value="${okDate(state.cardExp[k]) ? state.cardExp[k] : ''}" ${CAN_EDIT?'':'disabled'}></div>`).join('');
+  myCards().forEach(k => {
+    const inp = document.getElementById('bal-'+k);
+    inp.addEventListener('input', () => { state.balances[k] = +inp.value.replace(/[^\d]/g,'') || 0; renderBest(); });
+    inp.addEventListener('change', () => {
+      const v = +inp.value.replace(/[^\d]/g,'') || 0;
+      const old = inp.dataset.committed ?? '';
+      inp.value = pts(v);
+      if(String(v) !== old){ audit('UPDATE', PROGRAMS[k].name, 'Balance', old === '' ? '—' : pts(+old), pts(v));
+        if(state.example){ state.example = false; } save(); renderExample(); renderAudit(); toast('Balance saved'); }
+      inp.dataset.committed = v;
+    });
+    inp.dataset.committed = state.balances[k] || 0;
+    const ex = document.getElementById('exp-' + k);
+    ex.addEventListener('change', () => {
+      const v = okDate(ex.value) ? ex.value : '', old = state.cardExp[k] || '';
+      if(v === old) return;
+      audit('UPDATE', PROGRAMS[k].name, 'Expiry date', old || '—', v || '—');
+      if(v) state.cardExp[k] = v; else delete state.cardExp[k];
+      save(); renderExpiry(); renderAudit(); toast('Expiry saved');
+    });
+  });
+}
+function renderExample(){ document.getElementById('exampleNote').hidden = !state.example; renderWizard(); }
+
+/* best */
+function rows(){
+  const out = [];
+  liveOptions().forEach(o => o.cards.forEach(c => out.push({o, card:c, v:vpp(o)})));
+  return out;
+}
+function renderFilter(){
+  const f = document.getElementById('filter');
+  if(state.filter !== 'all' && !state.cards[state.filter]) state.filter = 'all';
+  const opts = myCards().length > 1 ? [['all','All cards'], ...myCards().map(k => [k, PROGRAMS[k].name.replace('Amex ','')])] : [];
+  f.innerHTML = opts.map(([k,l]) => `<button class="chip" data-f="${k}" aria-pressed="${state.filter===k}">${l}</button>`).join('')
+    + (anyHeld() ? `<button class="chip" id="heldChip" aria-pressed="${state.preferHeld}" title="List options you can use today first">Programs I hold first</button>` : '');
+  f.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { state.filter = b.dataset.f; save(); renderFilter(); renderBest(); });
+  const hc = document.getElementById('heldChip');
+  if(hc) hc.onclick = () => { state.preferHeld = !state.preferHeld; save(); renderFilter(); renderBest(); };
+}
+function renderBest(){
+  let list = rows();
+  if(state.filter !== 'all') list = list.filter(r => r.card === state.filter);
+  // dedupe identical Amex options across both MR cards when viewing all cards
+  const seen = new Set();
+  list = list.sort((a,b) => tier(a.o) - tier(b.o) || b.v - a.v ||(state.balances[b.card]||0) - (state.balances[a.card]||0))
+    .filter(r => { const k = r.o.id; if(seen.has(k)) return false; seen.add(k); return true; });
+  const top = list.slice(0,5);
+  document.getElementById('top5').innerHTML = top.map((r,i) => {
+    const [g,gl] = grade(r.v);
+    const cards = r.o.cards.map(c => PROGRAMS[c].name).join(' · ');
+    const capTxt = r.o.cap ? ` · cap ${CAPS[r.o.cap].label}` : '';
+    const how = howLine(r.o);
+    const usable = r.o.cards.reduce((s,c) => s + Math.min(state.balances[c]||0, r.o.cap ? CAPS[r.o.cap].limit : Infinity), 0);
+    return `<li><span class="pos">${i+1}</span>
+      <div class="what"><strong>${esc(r.o.name)}</strong><span class="meta">${esc(cards)} · ${r.o.kind}${capTxt}</span></div>
+      <div class="vpp"><div class="big num">₹${fmt(r.v)}</div><div class="per">per point</div></div>
+      <div class="foot"><span class="pill ${g}">${gl}</span><span>${how}</span>${chainTag(r.o)}${acctTag(r.o)}${usable?`<span>· your points worth up to <b class="num">${inr(usable*r.v)}</b></span>`:''}</div></li>`;
+  }).join('') || '<li><div class="what">No options for this card.</div></li>';
+
+  // greedy plan per card
+  planGrand = 0;
+  const used = {atlasA:0, atlasB:0};
+  const plan = Object.entries(PROGRAMS).filter(([k]) => state.cards[k]).map(([k,p]) => {
+    let left = state.balances[k] || 0; const lines = []; let total = 0;
+    const opts = liveOptions().filter(o => o.cards.includes(k)).sort((a,b) => vpp(b) - vpp(a));
+    for(const o of opts){
+      if(left <= 0) break;
+      let room = o.cap ? CAPS[o.cap].limit - used[o.cap] : Infinity;
+      const take = Math.min(left, room);
+      if(take <= 0) continue;
+      if(o.cap) used[o.cap] += take;
+      left -= take; total += take * vpp(o);
+      lines.push(`<div class="plan-line"><span>${pts(take)} → ${esc(o.name)} <span class="num">@ ₹${fmt(vpp(o))}</span> ${acctTag(o)}</span><span class="num">${inr(take*vpp(o))}</span></div>`);
+    }
+    if(!(state.balances[k])) return '';
+    planGrand += total;
+    return `<div class="plan-card"><div class="plan-head"><span>${p.name}</span><span class="total">${inr(total)}</span></div>${lines.join('')}</div>`;
+  }).join('');
+  document.getElementById('plan').innerHTML = plan || '<p class="note" style="margin:0">Enter a balance above to see your plan.</p>';
+  const note = 'Amex is ending points pooling between cards, so treat the Platinum Travel and MRCC balances separately (see Deals).';
+  const low = rows().filter(r => r.v < 0.35).map(r => r.o.name);
+  renderWallet();
+  document.getElementById('avoid').innerHTML = `<b>Avoid:</b> ${esc([...new Set(low)].join('; ')) || 'nothing below ₹0.35'}. ${note}`;
+}
+
+/* rates */
+function renderRates(){
+  const tb = document.getElementById('rateRows');
+  const sortV = o => { const v = vpp(o); return v == null ? -1 : v; };
+  tb.innerHTML = state.options.slice().sort((a,b) => sortV(b) - sortV(a)).map(o => {
+    const v = vpp(o), pv = pvOf(o);
+    const dis = CAN_EDIT ? '' : 'disabled';
+    const ratio = o.fixed != null ? '<span class="small">—</span>' : `<input id="r-${o.id}-ratio" data-id="${o.id}" data-f="ratio" class="num" value="${o.ratio}" ${dis} aria-label="Ratio for ${esc(o.name)}">`;
+    const fixed = o.fixed != null ? `<input id="r-${o.id}-fixed" data-id="${o.id}" data-f="fixed" class="num" value="${o.fixed}" ${dis} aria-label="Fixed ₹ per point for ${esc(o.name)}">` : '';
+    const pvCell = o.fixed != null ? '<span class="small">fixed →</span>' : (pv == null ? '<span class="small">No value yet</span>' : `<span class="num">₹${fmt(pv)}</span>`);
+    const pill = v == null ? '<span class="pill none">Unrated</span>' : `<span class="pill ${grade(v)[0]} num">₹${fmt(v)}</span>`;
+    const old = o.verified < '2026-01-01';
+    return `<tr><td style="min-width:200px">${esc(o.name)}</td>
+      <td class="small">${o.cards.map(c=>PROGRAMS[c].name.replace('Amex ','')).join(', ')}</td>
+      <td class="small">${esc(o.kind)}</td>
+      <td class="r">${ratio}</td><td class="r">${pvCell}</td>
+      <td class="r">${fixed} ${pill}</td>
+      <td class="small">${o.cap?CAPS[o.cap].label:'—'}</td>
+      <td class="small num" ${old?'style="color:var(--fair)" title="Older than 2026, please re-check"':''}>${esc(o.verified)}</td></tr>`;
+  }).join('');
+  tb.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => {
+    const o = state.options.find(x => x.id === inp.dataset.id); const f = inp.dataset.f;
+    const v = parseFloat(inp.value);
+    if(isNaN(v) || v < 0){ inp.value = o[f]; toast('Enter a number of 0 or more'); return; }
+    if(v === o[f]) return;
+    audit('UPDATE', o.name, {ratio:'Ratio', fixed:'₹ per pt'}[f], o[f], v);
+    o[f] = v; o.verified = today(); save();
+    renderRates(); renderBest(); renderAudit(); renderCalc(); renderPlanner(); toast('Rate saved');
+  }));
+}
+function renderLinks(){
+  document.getElementById('linkRows').innerHTML = LINKS.map(l => `<tr><td>${esc(PARTNER_NAME[l.from])}</td><td>${esc(PARTNER_NAME[l.to])}</td><td class="r num">1 : ${l.ratio}</td>
+    <td class="small">${esc(l.note)}</td><td class="small"><a href="${esc(l.src[1])}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(l.src[0])}</a></td><td class="small num">${esc(l.verified)}</td></tr>`).join('');
+}
+function renderMiles(){
+  const tb = document.getElementById('mileRows');
+  tb.innerHTML = PARTNERS.map(p => {
+    const m = state.miles[p.k] || {typ:null, src:'', verified:''};
+    return `<tr><td>${esc(p.name)}</td>
+      <td class="r"><input id="mv-${p.k}" data-k="${p.k}" class="num" inputmode="decimal" placeholder="none" value="${m.typ == null ? '' : m.typ}" ${CAN_EDIT ? '' : 'disabled'} aria-label="₹ per ${esc(p.name)} point"></td>
+      <td class="small">${esc(m.src || 'No figure researched yet')}</td><td class="small num">${esc(m.verified || '—')}</td></tr>`;
+  }).join('');
+  tb.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => {
+    const k = inp.dataset.k, m = state.miles[k] || (state.miles[k] = {typ:null, src:'', verified:''});
+    const raw = inp.value.trim(); const v = raw === '' ? null : parseFloat(raw);
+    if(v !== null && (isNaN(v) || v < 0)){ inp.value = m.typ == null ? '' : m.typ; toast('Enter a number of 0 or more'); return; }
+    if(v === m.typ) return;
+    audit('UPDATE', PARTNER_NAME[k], '₹ per point', m.typ == null ? '—' : m.typ, v == null ? '—' : v);
+    m.typ = v; m.src = 'Your value'; m.verified = today(); save();
+    renderMiles(); renderRates(); renderBest(); renderCalc(); renderPlanner(); renderAudit(); toast('Value saved');
+  }));
+}
+function showResetButton(){
+  const area = document.getElementById('resetArea');
+  if(!CAN_EDIT){ area.innerHTML = ''; return; }
+  area.innerHTML = '<button class="btn danger" id="resetBtn">Reset to researched rates</button>';
+  document.getElementById('resetBtn').onclick = () => {
+    area.innerHTML = `<span class="confirm">Replace all rates with the researched values? <button class="btn danger" id="yes">Reset</button><button class="btn" id="no">Cancel</button></span>`;
+    document.getElementById('no').onclick = showResetButton;
+    document.getElementById('yes').onclick = () => {
+      state.options = clone(DEFAULT_OPTIONS); state.miles = clone(DEFAULT_MILES); state.deals = null; state.packAwards = null; state.dealsChecked = null;
+      audit('RESET', 'Rate table', 'All rates', 'Edited values', 'Researched values');
+      showResetButton(); renderAll(); toast('Rates reset');
+    };
+  };
+}
+showResetButton();
+
+/* calculator */
+function renderCalcSelect(){
+  const sel = document.getElementById('cProg'), prev = sel.value;
+  const held = PARTNERS.filter(p => isHeld(p.k) && (state.programs[p.k].bal || 0) > 0);
+  sel.innerHTML = '<optgroup label="Card points">' + myCards().map(k => `<option value="${k}">${esc(PROGRAMS[k].name)}</option>`).join('') + '</optgroup>'
+    + (held.length ? '<optgroup label="Points I already hold">' + held.map(p => `<option value="h:${p.k}">${esc(p.name)} (${pts(state.programs[p.k].bal)})</option>`).join('') + '</optgroup>' : '');
+  if(prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+function renderCalc(){
+  const sv = document.getElementById('cProg').value, isHeldSel = sv.startsWith('h:'), k = isHeldSel ? sv.slice(2) : sv;
+  const cash = parseFloat(document.getElementById('cCash').value.replace(/[^\d.]/g,'')) || 0;
+  const p = parseFloat(document.getElementById('cPts').value.replace(/[^\d.]/g,'')) || 0;
+  const fees = parseFloat(document.getElementById('cFees').value.replace(/[^\d.]/g,'')) || 0;
+  const out = document.getElementById('cOut');
+  if(!p){ out.innerHTML = '<span class="small">Enter the points needed.</span>'; return; }
+  const v = (cash - fees) / p; const [g,gl] = grade(v);
+  let verdict = '', seas = '', call = null, have = 0, ex = '';
+  if(isHeldSel){
+    const typ = milesTyp(k), exp = state.programs[k] && state.programs[k].exp; have = state.programs[k] ? (state.programs[k].bal || 0) : 0;
+    const m = typ ? v / typ : null, d = okDate(exp) ? daysTo(exp) : null;
+    if(typ == null){ verdict = 'No ₹ value is set for ' + esc(PARTNER_NAME[k]) + ' yet, so there is nothing to compare with. Add one in Settings → Rates.'; }
+    else if(m >= 1) { call = ['good', 'Use points']; verdict = `Each point gets ₹${fmt(Math.max(v,0))}, at or above the usual ₹${fmt(typ)}.`; }
+    else if(d != null && d >= 0 && d <= 30){ call = ['fair', 'Use points, they expire soon']; verdict = `Each point gets ₹${fmt(Math.max(v,0))}, below the usual ₹${fmt(typ)}, but these points expire on ${esc(dmy(exp))}, so using them beats losing them.`; }
+    else if(m >= 0.85){ call = ['fair', 'Either is fine']; verdict = `Close to the usual ₹${fmt(typ)} per point.`; }
+    else { call = ['poor', 'Pay cash']; verdict = `Each point gets ₹${fmt(Math.max(v,0))}, below the usual ₹${fmt(typ)}. Pay cash and keep the points for a better booking.`; }
+    if(m != null && m >= 1.15) seas = ` That is ${m.toFixed(1)}× the usual, so prices are high and points are the better way to pay.`;
+    if(m != null && m < 0.85 && !(d != null && d >= 0 && d <= 30)) seas = ` That is ${m.toFixed(1)}× the usual, so prices are low and cash is the better way to pay.`;
+    if(d != null && d > 30 && d <= 90) ex = ` These points expire on ${esc(dmy(exp))}.`;
+  } else {
+    have = state.balances[k] || 0;
+    const best = liveOptions().filter(o => o.cards.includes(k)).sort((a,b)=>vpp(b)-vpp(a));
+    const floor = best.filter(o => o.kind==='Fixed value' || o.kind==='Voucher')[0];
+    if(floor && v < vpp(floor)){ call = ['poor', 'Pay cash']; verdict = `Below the easy option for this card (${esc(floor.name)} at ₹${fmt(vpp(floor))}). Skip this booking.`; }
+    else if(floor){ call = ['good', 'Use points']; verdict = `Beats the easy option for this card (${esc(floor.name)} at ₹${fmt(vpp(floor))}) by ${inr((v - vpp(floor)) * p)}.`; }
+    const top = best[0], tm = top && v > 0 ? v / vpp(top) : null;
+    seas = tm == null ? '' : tm >= 1.15 ? ` That is ${tm.toFixed(1)}× this card's usual best of ₹${fmt(vpp(top))}, so prices are high and points are the better way to pay.`
+      : tm <= 0.85 ? ` That is ${tm.toFixed(1)}× this card's usual best of ₹${fmt(vpp(top))}, so points are worth less than usual here.` : '';
+    const ced = state.cardExp[k], cd = okDate(ced) ? daysTo(ced) : null;
+    if(cd != null && cd >= 0 && cd <= 90) ex = ` These points expire on ${esc(dmy(ced))}.`;
+  }
+  const cover = have >= p ? `You hold ${pts(have)}, enough for this.` : `You hold ${pts(have)}, short by ${pts(p - have)}.`;
+  out.innerHTML = `<span class="label">This booking is worth</span>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="big">₹${fmt(Math.max(v,0))}</span><span class="small">per point</span><span class="pill ${g}">${gl}</span>${call ? `<span class="pill ${call[0]}">${esc(call[1])}</span>` : ''}</div>
+    <span class="small">(${inr(cash)} − ${inr(fees)}) ÷ ${pts(p)} points. ${verdict}${seas}${ex} ${cover}</span>`;
+}
+['cProg','cCash','cPts','cFees'].forEach(id => document.getElementById(id).addEventListener('input', renderCalc));
+document.getElementById('calc').addEventListener('submit', e => e.preventDefault());
+
+/* audit */
+function renderAudit(){
+  const a = state.audit;
+  document.getElementById('auditRows').innerHTML = a.length ? a.map(e => `<tr>
+    <td class="num small" style="white-space:nowrap">${esc(e.ts)}</td><td>${esc(e.user)}</td><td class="small">${esc(e.role)}</td>
+    <td><span class="pill ${e.action==='RESET'||e.action==='IMPORT'||e.action==='DELETE'?'poor':e.action==='UPDATE'?'fair':'good'}">${esc(e.action)}</span></td>
+    <td>${esc(e.record)}</td><td class="small">${esc(e.field)}</td><td class="num small">${esc(e.old)}</td><td class="num small">${esc(e.nw)}</td></tr>`).join('')
+    : '<tr><td colspan="8" class="small">No changes yet. Edits to balances and rates will appear here.</td></tr>';
+}
+
+/* trip planner */
+const CABINS = ['Economy','Premium Economy','Business','First','Standard room'];
+const FLIGHT_CABINS = CABINS.filter(c => c !== 'Standard room');
+// awards from an update pack replace the flight defaults; the hotel defaults stay unless the pack carries hotel prices
+const baseAwards = () => { const b = Array.isArray(state.packAwards) ? state.packAwards : DEFAULT_AWARDS; return b.concat(b.some(a => PARTNER_TYPE[a.partner] === 'Hotel') ? [] : DEFAULT_HOTEL_AWARDS); };
+const allAwards = () => baseAwards().concat(state.awards);
+const pMode = () => document.getElementById('pMode').value;
+const awardRoutes = mode => [...new Set(allAwards().filter(a => !mode || (PARTNER_TYPE[a.partner] === 'Hotel') === (mode === 'hotel')).map(a => a.route))];
+function renderCabinSelect(){
+  const route = document.getElementById('pRoute').value, cs = document.getElementById('pCabin'), prev = cs.value;
+  const have = (pMode() === 'hotel' ? ['Standard room'] : FLIGHT_CABINS).filter(c => allAwards().some(a => a.route === route && a.cabin === c));
+  cs.innerHTML = have.map(c => `<option>${c}</option>`).join('');
+  if(prev && have.includes(prev)) cs.value = prev;
+}
+function renderPlannerSelects(){
+  const rs = document.getElementById('pRoute'), prev = rs.value, list = awardRoutes(pMode());
+  rs.innerHTML = list.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  if(prev && list.includes(prev)) rs.value = prev;
+  document.getElementById('routeList').innerHTML = awardRoutes().map(r => `<option value="${esc(r)}"></option>`).join('');
+  renderCabinSelect();
+}
+function easyFloor(k){
+  return liveOptions().filter(o => o.cards.includes(k) && (o.kind === 'Fixed value' || o.kind === 'Voucher')).sort((a,b) => vpp(b) - vpp(a))[0];
+}
+function planResults(route, cabin, mult, hotel){
+  const U = hotel ? 'points' : 'miles';
+  const results = [];
+  allAwards().filter(a => a.route === route && a.cabin === cabin).forEach(a => {
+    const miles = a.miles * mult, fees = (a.taxes || 0) * mult;
+    const heldBal = isHeld(a.partner) ? (state.programs[a.partner].bal || 0) : 0, use = Math.min(heldBal, miles), top = miles - use;
+    if(heldBal > 0 && top === 0){ results.push({a, o:null, card:null, miles, need:0, fees, held:use, heldBal, top:0, status:['good', 'Covered by your held ' + U], ok:true}); return; }
+    const before = results.length;
+    state.options.concat(chainList()).filter(o => o.partner === a.partner && o.ratio > 0).forEach(o => o.cards.filter(c => state.cards[c]).forEach(card => {
+      const need = Math.ceil(top / o.ratio), bal = state.balances[card] || 0, limit = o.cap ? CAPS[o.cap].limit : Infinity;
+      const status = need > limit ? ['poor', 'Over the yearly cap by ' + pts(need - limit)] : need > bal ? ['fair', 'Balance short by ' + pts(need - bal)] : ['good', heldBal > 0 ? 'You can book this with a top-up' : 'You can book this'];
+      results.push({a, o, card, miles, need, fees, held:use, heldBal, top, status, ok: status[0] === 'good'});
+    }));
+    if(heldBal > 0 && results.length === before) results.push({a, o:null, card:null, miles, need:0, fees, held:use, heldBal, top, status:['fair', 'Short by ' + pts(top) + ' ' + U + ', and none of your cards reaches this program'], ok:false});
+  });
+  results.sort((x, y) => (y.ok - x.ok) || (x.need - y.need));
+  return results;
+}
+function applyPlanMode(){
+  const h = pMode() === 'hotel';
+  document.getElementById('lCabin').hidden = h; document.getElementById('lTrip').hidden = h; document.getElementById('lNights').hidden = !h;
+  document.getElementById('tRoute').textContent = h ? 'Hotel' : 'Route';
+  document.getElementById('tPax').textContent = h ? 'Rooms' : 'Travellers';
+  document.getElementById('tDate').textContent = h ? 'Check-in date (optional)' : 'Travel date (optional)';
+  document.getElementById('tCash').textContent = h ? 'Cash room rate for the whole stay (₹, optional)' : 'Cash fare for the whole trip on that date (₹, optional)';
+}
+function renderPlanner(){
+  const out = document.getElementById('pOut'), hotel = pMode() === 'hotel';
+  const U = hotel ? 'points' : 'miles', fareW = hotel ? 'room rate' : 'fare';
+  const route = document.getElementById('pRoute').value, cabin = hotel ? 'Standard room' : document.getElementById('pCabin').value;
+  const pax = +document.getElementById('pPax').value || 1, trip = +document.getElementById('pTrip').value || 1;
+  const nights = Math.min(30, Math.max(1, Math.round(+document.getElementById('pNights').value) || 1));
+  const mult = hotel ? pax * nights : pax * trip;
+  const cash = parseFloat(document.getElementById('pCash').value.replace(/[^\d.]/g,'')) || 0;
+  const results = planResults(route, cabin, mult, hotel);
+  if(!results.length){
+    const ref = allAwards().filter(a => a.route === route && a.cabin === cabin);
+    const refHtml = ref.length ? '<article class="deal"><div class="top"><h3>' + esc(ref[0].route) + '</h3><span class="pill none">For reference</span></div>' + ref.map(a => '<p>' + esc(PARTNER_NAME[a.partner]) + (a.tier ? ' · ' + esc(a.tier) : '') + ': ' + pts(a.miles * mult) + ' ' + U + (hotel ? ' (' + pts(a.miles) + ' per night × ' + pax + ' room' + (pax > 1 ? 's' : '') + ' × ' + nights + ' night' + (nights > 1 ? 's' : '') + ')' : '') + '</p>').join('') + '<div class="meta"><span>No card of yours transfers to this program and you hold none of its ' + U + '.</span>' + (ref[0].src ? '<a href="' + ref[0].src[1] + '" target="_blank" rel="noopener">' + esc(ref[0].src[0]) + '</a>' : '') + '</div></article>' : '';
+    out.innerHTML = refHtml + '<p class="note" style="margin:0">' + (hotel ? 'None of the cards or hotel accounts you hold reaches a hotel program with a price on file for this hotel. If you have found a price, add it below.' : 'None of the cards or airline accounts you hold reaches a program with an award price on file for this route and cabin. If you have found a price, add it below.') + '</p>';
+    return;
+  }
+  const dv = document.getElementById('pDate').value, dt = /^\d{4}-\d{2}-\d{2}$/.test(dv) ? new Date(dv + 'T00:00:00') : null;
+  const when = dt && !isNaN(dt) ? dt.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : '';
+  const lead = cash > 0
+    ? `<p class="note" style="margin:0">Value${when ? (hotel ? ' for a stay from ' : ' for travel on ') + esc(when) : ''} at a cash ${fareW} of ${inr(cash)}. ${hotel ? 'Hotel award prices move with the date too, so check the exact points for your nights. ' : 'Award prices are mostly fixed while cash fares move with the date, so the dearer the fare, the more each point is worth.'}</p>`
+    : `<p class="note" style="margin:0">Add the cash ${fareW}${when ? ' for ' + esc(when) : hotel ? ' for your stay' : ' for your travel date'} to see what each point is worth on that day. Points are worth most when prices are high, such as holidays and last-minute trips.</p>`;
+  out.innerHTML = lead + results.map(r => {
+    const a = r.a, o = r.o, st = r.status;
+    let valueLine = '';
+    const hv = r.held > 0 ? milesTyp(a.partner) : 0;
+    if(cash > 0 && !o){
+      const v = Math.max((cash - r.fees) / r.miles, 0), gr = grade(v), typ = milesTyp(a.partner), m = typ ? v / typ : null;
+      valueLine = `<span class="pill ${gr[0]}">₹${fmt(v)} per ${hotel ? 'point' : 'mile'}</span>` + (m == null ? '' : m >= 1.15 ? `<span><b>${m.toFixed(1)}×</b> the usual ₹${fmt(typ)}: ${hotel ? 'rates are high' : 'fares are high'}, so your held ${U} go further.</span>` : m <= 0.85 ? `<span><b>${m.toFixed(1)}×</b> the usual ₹${fmt(typ)}: ${hotel ? 'rates are low' : 'fares are low'}, so paying cash and keeping the ${U} may be better.</span>` : `<span>About the usual ₹${fmt(typ)}.</span>`);
+    } else if(cash > 0 && hv != null){
+      const v = Math.max((cash - r.fees - r.held * hv) / r.need, 0), gr = grade(v), fl = easyFloor(r.card);
+      const typ = vpp(o), m = typ ? v / typ : null;
+      const seas = m == null ? '' : m >= 1.15 ? `<span><b>${m.toFixed(1)}×</b> the usual ₹${fmt(typ)}: ${hotel ? 'rates are high for this stay' : 'fares are high for this trip'}, so each point is worth more.</span>`
+        : m <= 0.85 ? `<span><b>${m.toFixed(1)}×</b> the usual ₹${fmt(typ)}: ${hotel ? 'rates are low for this stay' : 'fares are low for this trip'}, so paying cash and keeping the points may be better.</span>` : `<span>About the usual ₹${fmt(typ)}.</span>`;
+      valueLine = `<span class="pill ${gr[0]}">₹${fmt(v)} per point</span>` + seas + (fl ? `<span>${v >= vpp(fl) ? 'beats' : 'below'} ${esc(fl.name)} (₹${fmt(vpp(fl))})</span>` : '');
+    }
+    const taxNote = a.taxes ? 'Taxes and fees about ' + inr(r.fees) + ' in cash.' : hotel ? 'Taxes and extra charges are not on file. Check what the booking asks for in cash.' : 'Taxes and fees are not on file and are paid in cash on top.';
+    const how = hotel ? pts(a.miles) + ' points per night × ' + pax + ' room' + (pax > 1 ? 's' : '') + ' × ' + nights + ' night' + (nights > 1 ? 's' : '') + ' = ' + pts(r.miles) + ' points'
+      : pts(a.miles) + ' miles × ' + pax + ' traveller' + (pax > 1 ? 's' : '') + ' × ' + (trip === 2 ? 'return' : 'one way') + ' = ' + pts(r.miles) + ' miles';
+    const heldLine = r.held > 0 ? `<p class="act">Uses <b class="num">${pts(r.held)}</b> of your ${pts(r.heldBal)} held ${esc(PARTNER_NAME[a.partner])} ${U}${r.top > 0 ? ', then tops up ' + pts(r.top) + ' ' + U : '. No transfer needed'}.</p>` : '';
+    const cardLine = o ? `<p class="act">From ${esc(PROGRAMS[r.card].name)}${o.chain ? ' via ' + esc(PARTNER_NAME[o.via]) : ''}: <b class="num">${pts(r.need)}</b> ${esc(PROGRAMS[r.card].unit)} at 1 : ${o.ratio}. You hold <span class="num">${pts(state.balances[r.card] || 0)}</span>.</p>${o.chain ? '<p>Two steps: ' + esc(o.note) + '</p>' : ''}` : '';
+    return `<article class="deal"><div class="top"><h3>${esc(PARTNER_NAME[a.partner])}${a.tier ? ' · ' + esc(a.tier) : ''}</h3><span class="pill ${st[0]}">${esc(st[1])}</span></div>
+      <p>${how}</p>${heldLine}${cardLine}
+      <div class="meta">${valueLine}<span>${taxNote}</span>${a.note ? '<span>' + esc(a.note) + '</span>' : ''}${a.src ? '<a href="' + a.src[1] + '" target="_blank" rel="noopener">' + esc(a.src[0]) + '</a>' : '<span>' + (a.user ? 'Added by you' : 'No source listed') + '</span>'}<span>Checked ${esc(a.verified)}</span></div></article>`;
+  }).join('') + '<p class="note" style="margin:0">Yearly caps are compared with the full cap, because transfers you already made this year are not tracked. Award prices change, so confirm on the program\'s site before you transfer.</p>';
+}
+function bestRoute(a){
+  let best = null;
+  state.options.concat(chainList()).filter(o => o.partner === a.partner && o.ratio > 0).forEach(o => o.cards.filter(c => state.cards[c]).forEach(card => {
+    const need = Math.ceil(a.miles / o.ratio), over = need > (o.cap ? CAPS[o.cap].limit : Infinity), c = {o, card, need, over};
+    if(!best || (best.over && !over) || (best.over === over && need < best.need)) best = c;
+  }));
+  return best;
+}
+const cashKey = a => a.route + '|' + a.cabin;
+function renderRank(){
+  const tb = document.getElementById('rankRows'); if(!tb) return;
+  const type = document.getElementById('rankType').value, rows = [];
+  allAwards().forEach(a => {
+    const h = PARTNER_TYPE[a.partner] === 'Hotel';
+    if(type !== 'all' && (type === 'hotel') !== h) return;
+    const b = bestRoute(a); if(!b) return;
+    const key = cashKey(a), ref = CASH_REF[key], mine = state.cashRef[key], cash = mine != null ? mine : (ref ? ref.cash : null);
+    const fl = easyFloor(b.card), floorV = fl ? vpp(fl) : 0, typ = vpp(b.o) || 0;
+    const v = cash != null ? Math.max((cash - (a.taxes || 0)) / b.need, 0) : null;
+    let call;
+    if(b.over) call = ['poor', 'Over the yearly cap'];
+    else if(v == null) call = ['none', 'Points win above ' + inr(Math.ceil(b.need * floorV))];
+    else if(fl && v < floorV) call = ['poor', 'Pay cash'];
+    else if(typ && v >= typ) call = ['good', 'Use points'];
+    else call = ['fair', 'Marginal'];
+    rows.push({a, b, key, ref, mine, cash, v, call, h, thr:b.need * floorV});
+  });
+  rows.sort((x, y) => (x.b.over - y.b.over) || (y.v != null) - (x.v != null) || (y.v != null ? y.v - x.v : x.thr - y.thr));
+  tb.innerHTML = rows.length ? rows.map(r => {
+    const a = r.a, b = r.b, srcTxt = r.mine != null ? 'Your price' : r.ref ? esc(r.ref.note) : '';
+    const srcLink = r.mine == null && r.ref ? ' <a href="' + esc(r.ref.src[1]) + '" target="_blank" rel="noopener" style="color:var(--accent)">' + esc(r.ref.src[0]) + '</a>' : '';
+    return `<tr><td style="min-width:150px">${esc(a.route)}<div class="small">${esc(PARTNER_NAME[a.partner])}${r.h ? ' · per night' : ' · ' + esc(a.cabin) + ', one way'}${a.tier ? ' · ' + esc(a.tier) : ''}</div></td>
+      <td class="small">${esc(PROGRAMS[b.card].name)}: <b class="num">${pts(b.need)}</b> ${esc(PROGRAMS[b.card].unit)}${b.o.chain ? ' via ' + esc(PARTNER_NAME[b.o.via]) : ''}</td>
+      <td class="r"><input class="num rk" data-key="${esc(r.key)}" inputmode="numeric" placeholder="add" value="${r.cash != null ? pts(r.cash) : ''}" ${CAN_EDIT ? '' : 'disabled'} aria-label="Typical cash price for ${esc(a.route)}" style="width:96px"><div class="small">${srcTxt}${srcLink}</div></td>
+      <td class="r num">${r.v == null ? '—' : '₹' + fmt(r.v)}</td>
+      <td><span class="pill ${r.call[0]}">${esc(r.call[1])}</span></td></tr>`;
+  }).join('') : '<tr><td colspan="5" class="small">No award price on file is reachable from the cards you hold.</td></tr>';
+  tb.querySelectorAll('input.rk').forEach(inp => inp.onchange = () => {
+    const key = inp.dataset.key, raw = inp.value.replace(/[^\d]/g, ''), v = raw ? +raw : null;
+    const old = state.cashRef[key] != null ? state.cashRef[key] : (CASH_REF[key] ? CASH_REF[key].cash : null);
+    if(v === old) { renderRank(); return; }
+    if(v == null){ delete state.cashRef[key]; } else state.cashRef[key] = v;
+    audit('UPDATE', key.replace('|', ' · '), 'Typical cash price', old == null ? '—' : inr(old), v == null ? '—' : inr(v));
+    save(); renderRank(); renderAudit(); toast('Saved');
+  });
+}
+document.getElementById('rankType').addEventListener('change', renderRank);
+{ const base = renderPlanner; renderPlanner = function(){ base(); renderRank(); if(typeof renderTrips === 'function'){ renderTrips(); renderNextTrip(); } }; }
+function renderAwards(){
+  document.getElementById('awardRows').innerHTML = allAwards().map(a => `<tr>
+    <td style="min-width:140px">${esc(a.route)}</td><td>${esc(PARTNER_NAME[a.partner])}</td>
+    <td>${esc(a.cabin)}${a.tier ? ' <span class="small">· ' + esc(a.tier) + '</span>' : ''}</td>
+    <td class="r num">${pts(a.miles)}</td>
+    <td class="small">${a.src ? '<a href="' + a.src[1] + '" target="_blank" rel="noopener" style="color:var(--accent)">' + esc(a.src[0]) + '</a>' : (a.user ? 'Added by you' : 'No source listed')}</td>
+    <td class="small num">${esc(a.verified)}</td>
+    <td>${a.user && CAN_EDIT ? '<button class="btn" type="button" data-del="' + esc(a.id) + '">Remove</button>' : ''}</td></tr>`).join('');
+  document.querySelectorAll('#awardRows button[data-del]').forEach(b => b.onclick = () => {
+    const td = b.parentElement, id = b.dataset.del;
+    td.innerHTML = '<span class="confirm">Remove? <button class="btn danger" type="button" data-yes>Yes</button><button class="btn" type="button" data-no>No</button></span>';
+    td.querySelector('[data-no]').onclick = renderAwards;
+    td.querySelector('[data-yes]').onclick = () => {
+      const a = state.awards.find(x => x.id === id);
+      state.awards = state.awards.filter(x => x.id !== id);
+      if(a) audit('DELETE', a.route + ' · ' + PARTNER_NAME[a.partner], 'Award price', pts(a.miles) + (PARTNER_TYPE[a.partner] === 'Hotel' ? ' points per night' : ' miles'), '—');
+      save(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderAudit(); toast('Removed');
+    };
+  });
+}
+document.getElementById('aPartner').innerHTML = '<optgroup label="Airlines">' + PARTNERS.filter(p => p.type === 'Airline').map(p => `<option value="${p.k}">${esc(p.name)}</option>`).join('') + '</optgroup><optgroup label="Hotels">' + PARTNERS.filter(p => p.type === 'Hotel').map(p => `<option value="${p.k}">${esc(p.name)}</option>`).join('') + '</optgroup>';
+function syncAwardForm(){
+  const h = PARTNER_TYPE[document.getElementById('aPartner').value] === 'Hotel';
+  document.getElementById('aCabin').innerHTML = (h ? ['Standard room'] : FLIGHT_CABINS).map(c => `<option>${c}</option>`).join('');
+  document.getElementById('aTRoute').textContent = h ? 'Hotel' : 'Route';
+  document.getElementById('aRoute').placeholder = h ? 'e.g. Hyatt Regency Pune' : 'e.g. Mumbai ↔ London';
+  document.getElementById('aTCabin').textContent = h ? 'Room' : 'Cabin';
+  document.getElementById('aTTier').textContent = h ? 'Rate type or note (optional)' : 'Fare or note (optional)';
+  document.getElementById('aTMiles').textContent = h ? 'Points needed per night, per room' : 'Miles needed, one way, per person';
+  document.getElementById('aTTax').textContent = h ? 'Taxes and fees per night, per room (₹, optional)' : 'Taxes and fees, one way, per person (₹, optional)';
+}
+document.getElementById('aPartner').addEventListener('change', syncAwardForm); syncAwardForm();
+document.getElementById('pMode').addEventListener('change', () => { applyPlanMode(); renderPlannerSelects(); renderPlanner(); });
+document.getElementById('pNights').addEventListener('input', renderPlanner);
+['pCabin','pPax','pTrip','pDate'].forEach(id => document.getElementById(id).addEventListener('change', renderPlanner));
+document.getElementById('pCash').addEventListener('input', renderPlanner);
+document.getElementById('pRoute').addEventListener('change', () => { renderCabinSelect(); renderPlanner(); });
+document.getElementById('planForm').addEventListener('submit', e => e.preventDefault());
+document.getElementById('aForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if(!CAN_EDIT) return;
+  const route = cleanStr(document.getElementById('aRoute').value.trim(), 80), partner = document.getElementById('aPartner').value, cabin = document.getElementById('aCabin').value;
+  const tier = cleanStr(document.getElementById('aTier').value.trim(), 40);
+  const miles = parseFloat(document.getElementById('aMiles').value.replace(/[^\d.]/g,'')), taxes = parseFloat(document.getElementById('aTax').value.replace(/[^\d.]/g,'')) || 0;
+  if(!route || !(miles > 0)){ toast('Enter a route or hotel and the miles or points needed'); return; }
+  state.awards.push({id:'u' + Date.now(), route, partner, cabin, tier, miles:Math.round(miles), taxes:Math.round(taxes), verified:today(), user:true});
+  const isHotel = PARTNER_TYPE[partner] === 'Hotel';
+  audit('CREATE', route + ' · ' + PARTNER_NAME[partner], 'Award price', '—', pts(miles) + (isHotel ? ' points per night' : ' miles') + ' (' + cabin + ')');
+  save(); e.target.reset(); document.getElementById('aPartner').value = partner; syncAwardForm();
+  document.getElementById('pMode').value = isHotel ? 'hotel' : 'flight'; applyPlanMode(); renderPlannerSelects();
+  document.getElementById('pRoute').value = route; renderCabinSelect(); document.getElementById('pCabin').value = cabin;
+  renderPlanner(); renderAwards(); renderAudit(); toast('Award price added');
+});
+
+
+/* upcoming trips */
+const PLACE_TAGS = {
+  'Mumbai ↔ Singapore':['singapore'],
+  'India ↔ Europe':['europe','london','uk','england','paris','france','frankfurt','germany','amsterdam','netherlands','rome','italy','milan','madrid','spain','zurich','switzerland','vienna','brussels','dublin'],
+  'Delhi ↔ Singapore, Bangkok, Dubai or Bali':['singapore','bangkok','thailand','dubai','uae','bali','indonesia'],
+  'Delhi ↔ San Francisco':['san francisco','sfo','california','usa','united states'],
+  'JW Marriott Mumbai Juhu':['mumbai','juhu']
+};
+const ORIGIN_WORDS = ['mumbai','delhi','india','new'];
+const placeTokens = t => String(t || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 3);
+function flightMatch(route, dest){
+  const d = String(dest || '').toLowerCase(), tags = PLACE_TAGS[route];
+  if(tags) return tags.some(t => d.includes(t));
+  const toks = placeTokens(dest).filter(w => !ORIGIN_WORDS.includes(w));
+  return toks.some(w => route.toLowerCase().includes(w));
+}
+function hotelMatch(route, dest){
+  const hay = ((PLACE_TAGS[route] || []).join(' ') + ' ' + route).toLowerCase();
+  return placeTokens(dest).some(w => hay.includes(w));
+}
+const MAX_TRIPS = 60;
+function sanitizeTrip(t){
+  if(!t || typeof t !== 'object') return null;
+  const dest = cleanStr(t.dest, 60).trim(); if(!dest) return null;
+  const n = (v, lo, hi, d) => { v = Math.round(+v); return v >= lo && v <= hi ? v : d; };
+  const cash = v => { v = Math.round(+v); return v > 0 && v < 1e8 ? v : null; };
+  const start = okDate(t.start) ? t.start : '', end = okDate(t.end) && (!start || t.end >= start) ? t.end : '';
+  return {id:cleanStr(t.id, 24) || 't' + Date.now(), dest, start, end, pax:n(t.pax, 1, 6, 1), rooms:n(t.rooms, 1, 4, 1),
+    cabin:FLIGHT_CABINS.includes(t.cabin) ? t.cabin : 'Economy', flights:t.flights !== false, hotel:t.hotel !== false, way:t.way == 1 ? 1 : 2,
+    nights:n(t.nights, 1, 30, 2), cashF:cash(t.cashF), cashH:cash(t.cashH), hotelPick:cleanStr(t.hotelPick, 80)};
+}
+const tripNights = t => t.start && t.end ? Math.min(30, Math.max(1, Math.round((new Date(t.end + 'T00:00:00') - new Date(t.start + 'T00:00:00')) / 864e5))) : t.nights;
+const tripDesc = t => t.dest + (t.start ? ', ' + dmy(t.start) + (t.end ? ' to ' + dmy(t.end) : '') : '');
+const resValue = (r, cash) => {
+  if(!(cash > 0)) return null;
+  if(!r.o) return Math.max((cash - r.fees) / r.miles, 0);
+  const hv = r.held > 0 ? milesTyp(r.a.partner) : 0; if(hv == null) return null;
+  const n = cash - r.fees - r.held * hv; return n > 0 ? n / r.need : null;
+};
+function tripPlan(t){
+  const out = {parts:[], alerts:[], gaps:[], deals:[]}, days = t.start ? daysTo(t.start) : null;
+  const addPart = (kind, routes, cabin, mult, hotel, cash) => {
+    let res = [];
+    routes.forEach(r => { if(allAwards().some(a => a.route === r && a.cabin === cabin)) planResults(r, cabin, mult, hotel).forEach(x => res.push(Object.assign(x, {routeName:r}))); });
+    res.sort((x, y) => (y.ok - x.ok) || (x.need - y.need));
+    out.parts.push({kind, routes, res:res.slice(0, 2), cash, hotel, mult});
+    return res;
+  };
+  const exp = [];
+  if(t.flights){
+    const routes = awardRoutes('flight').filter(r => flightMatch(r, t.dest));
+    const res = addPart('Flight', routes, t.cabin, t.pax * t.way, false, t.cashF);
+    if(!routes.length) out.gaps.push('No flight award price on file for ' + t.dest + '.');
+    else if(!res.length) out.gaps.push('No ' + t.cabin + ' award price on file for ' + routes.join(' or ') + '.');
+    res.slice(0, 2).forEach(r => exp.push(r));
+  }
+  if(t.hotel){
+    let routes = awardRoutes('hotel').filter(r => hotelMatch(r, t.dest)), generic = false;
+    if(!routes.length && t.hotelPick && awardRoutes('hotel').includes(t.hotelPick)){ routes = [t.hotelPick]; generic = true; }
+    const res = addPart('Hotel', routes, 'Standard room', t.rooms * tripNights(t), true, t.cashH);
+    out.parts[out.parts.length - 1].generic = generic;
+    if(!routes.length) out.gaps.push('No hotel price on file for ' + t.dest + '. Pick a typical hotel type below or research it.');
+    res.slice(0, 2).forEach(r => exp.push(r));
+  }
+  const seen = new Set();
+  exp.forEach(r => {
+    const pr = state.programs[r.a.partner];
+    if(pr && pr.held && okDate(pr.exp) && t.start && pr.exp < t.start && (pr.bal || 0) > 0 && !seen.has('p' + r.a.partner)){ seen.add('p' + r.a.partner); out.alerts.push([ 'poor', PARTNER_NAME[r.a.partner] + ' points expire on ' + dmy(pr.exp) + ', before this trip. Use or move them first.' ]); }
+    if(r.card && okDate(state.cardExp[r.card]) && t.start && state.cardExp[r.card] < t.start && (state.balances[r.card] || 0) > 0 && !seen.has('c' + r.card)){ seen.add('c' + r.card); out.alerts.push(['poor', PROGRAMS[r.card].name + ' points expire on ' + dmy(state.cardExp[r.card]) + ', before this trip.']); }
+  });
+  const top = exp[0];
+  if(days != null && days >= 0 && days <= 30 && out.parts.some(p => p.res.length) && !out.parts.some(p => p.res[0] && p.res[0].ok)) out.alerts.push(['fair', 'The trip is ' + days + ' day' + (days === 1 ? '' : 's') + ' away and your balance does not cover it yet. Transfers are not instant, so start soon.']);
+  const toks = placeTokens(t.dest).filter(w => !ORIGIN_WORDS.includes(w));
+  if(toks.length) dealsNow().filter(d => d.status !== 'none' && toks.some(w => (d.title + ' ' + d.detail).toLowerCase().includes(w))).slice(0, 2).forEach(d => out.deals.push(d));
+  out.top = top; out.days = days;
+  return out;
+}
+function partLine(p, t){
+  if(!p.res.length) return '';
+  const r = p.res[0], a = r.a, U = p.hotel ? 'points' : 'miles', v = resValue(r, p.cash);
+  const how = r.o ? `${esc(PROGRAMS[r.card].name)}: <b class="num">${pts(r.need)}</b> ${esc(PROGRAMS[r.card].unit)}${r.o.chain ? ' via ' + esc(PARTNER_NAME[r.o.via]) : ''}` : 'Your held ' + esc(PARTNER_NAME[a.partner]) + ' ' + U;
+  const held = r.held > 0 ? ` Uses ${pts(r.held)} held ${U}${r.top > 0 ? ' plus a top-up' : ', no transfer needed'}.` : '';
+  const alt = p.res.length > 1 ? ` <span class="small">Next best: ${esc(PARTNER_NAME[p.res[1].a.partner])}${p.res[1].a.tier ? ' · ' + esc(p.res[1].a.tier) : ''}.</span>` : '';
+  return `<p class="act"><b>${p.kind}</b> · ${esc(PARTNER_NAME[a.partner])}${a.tier ? ' · ' + esc(a.tier) : ''} (${esc(r.routeName)}): ${how}.${held} <span class="pill ${r.status[0]}">${esc(r.status[1])}</span>${v == null ? '' : ' <span class="pill ' + grade(v)[0] + '">₹' + fmt(v) + ' per point</span>'}${alt}</p>`;
+}
+let editTrip = null, rsTrip = null;
+function renderTrips(){
+  const el = document.getElementById('tList'); if(!el) return;
+  document.getElementById('placeList').innerHTML = [...new Set(Object.values(PLACE_TAGS).flat().concat(state.trips.map(t => t.dest)))].map(x => `<option value="${esc(x)}"></option>`).join('');
+  const t0 = today(), up = state.trips.filter(t => (t.end || t.start || '9999') >= t0).sort((a, b) => (a.start || '9999').localeCompare(b.start || '9999'));
+  const past = state.trips.filter(t => !up.includes(t));
+  el.innerHTML = up.length ? up.map(t => {
+    const pl = tripPlan(t), nights = tripNights(t);
+    const when = pl.days == null ? 'No date yet' : pl.days < 0 ? 'Under way' : pl.days === 0 ? 'Today' : 'In ' + pl.days + ' day' + (pl.days === 1 ? '' : 's');
+    const parts = pl.parts.map(p => partLine(p, t)).join('');
+    const hotelNone = t.hotel && pl.parts.find(p => p.kind === 'Hotel' && !p.routes.length);
+    const pick = hotelNone ? `<label class="small" style="display:grid;gap:4px;min-width:0">Estimate the hotel with a typical type<select data-pick="${esc(t.id)}" style="width:100%;max-width:100%;min-width:0;font:500 .85rem var(--f-body);border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--bg);color:var(--fg)"><option value="">Choose…</option>${awardRoutes('hotel').filter(r => /Category/.test(r)).map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('')}</select></label>` : '';
+    return `<article class="deal"><div class="top"><h3>${esc(t.dest)}</h3><span class="pill none">${esc(when)}</span></div>
+      <p>${esc(t.start ? dmy(t.start) + (t.end ? ' to ' + dmy(t.end) : '') : 'Add dates for expiry and timing checks')} · ${t.pax} traveller${t.pax > 1 ? 's' : ''}${t.hotel ? ' · ' + t.rooms + ' room' + (t.rooms > 1 ? 's' : '') + ', ' + nights + ' night' + (nights > 1 ? 's' : '') : ''}${t.flights ? ' · ' + esc(t.cabin) + ', ' + (t.way === 2 ? 'return' : 'one way') : ''}</p>
+      ${parts}${pl.gaps.map(g => '<p class="small" style="color:var(--fair)">' + esc(g) + '</p>').join('')}${pick}
+      ${pl.alerts.map(a => `<div class="exp-alert ${a[0] === 'poor' ? 'poor' : ''}"><span>${esc(a[1])}</span></div>`).join('')}
+      ${pl.deals.map(d => `<p class="small">Deal that mentions this place: <b>${esc(d.title)}</b></p>`).join('')}
+      <div class="meta"><button class="btn" type="button" data-open="${esc(t.id)}">Open in planner</button>${pl.gaps.length ? `<button class="btn primary" type="button" data-rs="${esc(t.id)}">Research prices</button>` : ''}${CAN_EDIT ? `<button class="btn" type="button" data-edit="${esc(t.id)}">Edit</button><button class="btn" type="button" data-del="${esc(t.id)}">Delete</button>` : ''}</div></article>`;
+  }).join('') : '<p class="note" style="margin:0">No upcoming trips yet. Press Add a trip.</p>';
+  el.querySelectorAll('[data-open]').forEach(b => b.onclick = () => openInPlanner(state.trips.find(t => t.id === b.dataset.open)));
+  el.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => startResearch(b.dataset.rs));
+  el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openTripForm(state.trips.find(t => t.id === b.dataset.edit)));
+  el.querySelectorAll('[data-pick]').forEach(sel => sel.onchange = () => { const t = state.trips.find(x => x.id === sel.dataset.pick); if(!t || !sel.value) return; t.hotelPick = sel.value; audit('UPDATE', 'Trip · ' + t.dest, 'Typical hotel type', '—', sel.value); save(); renderTrips(); renderNextTrip(); renderAudit(); });
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const t = state.trips.find(x => x.id === b.dataset.del), box = b.parentElement;
+    box.innerHTML = '<span class="confirm">Delete this trip? <button class="btn danger" type="button" data-yes>Yes</button><button class="btn" type="button" data-no>No</button></span>';
+    box.querySelector('[data-no]').onclick = renderTrips;
+    box.querySelector('[data-yes]').onclick = () => { state.trips = state.trips.filter(x => x !== t); audit('DELETE', 'Trip · ' + t.dest, 'Trip', tripDesc(t), '—'); renderTrips(); renderNextTrip(); renderAudit(); toast('Trip deleted'); };
+  });
+  const pf = document.getElementById('tPast'); pf.hidden = !past.length;
+  document.getElementById('tPastBody').innerHTML = past.map(t => `<div class="plan-line"><span>${esc(tripDesc(t))}</span>${CAN_EDIT ? `<button class="btn" type="button" data-pdel="${esc(t.id)}">Delete</button>` : ''}</div>`).join('');
+  document.querySelectorAll('#tPastBody [data-pdel]').forEach(b => b.onclick = () => { const t = state.trips.find(x => x.id === b.dataset.pdel); state.trips = state.trips.filter(x => x !== t); audit('DELETE', 'Trip · ' + t.dest, 'Trip', tripDesc(t), '—'); renderTrips(); renderAudit(); });
+}
+function renderNextTrip(){
+  const el = document.getElementById('nextTrip'); if(!el) return;
+  const t0 = today(), up = state.trips.filter(t => (t.end || t.start || '9999') >= t0 && t.start).sort((a, b) => a.start.localeCompare(b.start));
+  if(!up.length){ el.innerHTML = ''; return; }
+  const t = up[0], pl = tripPlan(t), p = pl.parts.find(x => x.res.length), r = p && p.res[0];
+  el.innerHTML = `<div class="exp-alert" style="background:var(--surface);color:var(--fg);border:1px solid var(--line)"><span><b>Next trip: ${esc(t.dest)}</b>, ${esc(dmy(t.start))}${pl.days != null && pl.days >= 0 ? ' (in ' + pl.days + ' day' + (pl.days === 1 ? '' : 's') + ')' : ''}.${r ? ' Best ' + p.kind.toLowerCase() + ' option: ' + esc(PARTNER_NAME[r.a.partner]) + (r.o ? ' from ' + esc(PROGRAMS[r.card].name) : ' from held points') + ', ' + esc(r.status[1].toLowerCase()) + '.' : ' No price on file yet.'}${pl.alerts.length ? ' ' + esc(pl.alerts[0][1]) : ''}</span><button class="btn" type="button" data-go>Open trips</button></div>`;
+  el.querySelector('[data-go]').onclick = () => showView('trips');
+}
+function openInPlanner(t){
+  if(!t) return;
+  const pl = tripPlan(t), p = pl.parts.find(x => x.res.length && (x.kind === 'Flight' ? t.flights : t.hotel)) || pl.parts.find(x => x.routes.length);
+  if(!p){ toast('No price on file to plan with'); return; }
+  const hotel = p.kind === 'Hotel';
+  document.getElementById('pMode').value = hotel ? 'hotel' : 'flight'; applyPlanMode(); renderPlannerSelects();
+  document.getElementById('pRoute').value = p.res.length ? p.res[0].routeName : p.routes[0]; renderCabinSelect();
+  if(!hotel) document.getElementById('pCabin').value = t.cabin;
+  document.getElementById('pPax').value = String(hotel ? t.rooms : t.pax);
+  if(hotel) document.getElementById('pNights').value = tripNights(t); else document.getElementById('pTrip').value = String(t.way);
+  document.getElementById('pDate').value = t.start || '';
+  document.getElementById('pCash').value = (hotel ? t.cashH : t.cashF) || '';
+  renderPlanner(); document.getElementById('tab-plan').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function openTripForm(t){
+  editTrip = t || null;
+  const f = document.getElementById('tForm'); f.hidden = false;
+  document.getElementById('tCabin').innerHTML = FLIGHT_CABINS.map(c => `<option>${c}</option>`).join('');
+  const v = t || {dest:'', start:'', end:'', pax:1, rooms:1, cabin:'Economy', flights:true, hotel:true, way:2, cashF:null, cashH:null};
+  document.getElementById('tDest').value = v.dest; document.getElementById('tStart').value = v.start; document.getElementById('tEnd').value = v.end;
+  document.getElementById('tPax').value = v.pax; document.getElementById('tRooms').value = v.rooms; document.getElementById('tCabin').value = v.cabin; document.getElementById('tWay').value = String(v.way);
+  document.getElementById('tCashF').value = v.cashF || ''; document.getElementById('tCashH').value = v.cashH || '';
+  document.getElementById('tFly').setAttribute('aria-pressed', String(v.flights)); document.getElementById('tStay').setAttribute('aria-pressed', String(v.hotel));
+  document.getElementById('tSave').textContent = t ? 'Save changes' : 'Save trip';
+  f.scrollIntoView({behavior:'smooth', block:'nearest'}); document.getElementById('tDest').focus();
+}
+document.getElementById('tAdd').onclick = () => { if(!CAN_EDIT){ toast('Only an Admin can add trips'); return; } if(state.trips.length >= MAX_TRIPS){ toast('Delete an old trip first'); return; } openTripForm(null); };
+document.getElementById('tCancel').onclick = () => { document.getElementById('tForm').hidden = true; editTrip = null; };
+['tFly', 'tStay'].forEach(id => document.getElementById(id).onclick = e => e.currentTarget.setAttribute('aria-pressed', String(e.currentTarget.getAttribute('aria-pressed') !== 'true')));
+document.getElementById('tForm').addEventListener('submit', e => {
+  e.preventDefault(); if(!CAN_EDIT) return;
+  const dest = cleanStr(document.getElementById('tDest').value, 60).trim();
+  if(!dest){ toast('Enter where you are going'); return; }
+  const start = document.getElementById('tStart').value, end = document.getElementById('tEnd').value;
+  if(okDate(start) && okDate(end) && end < start){ toast('The end date is before the start date'); return; }
+  const flights = document.getElementById('tFly').getAttribute('aria-pressed') === 'true', hotel = document.getElementById('tStay').getAttribute('aria-pressed') === 'true';
+  if(!flights && !hotel){ toast('Choose flights, a hotel or both'); return; }
+  const num = id => parseFloat(document.getElementById(id).value.replace(/[^\d.]/g, '')) || null;
+  const nt = sanitizeTrip({id:editTrip ? editTrip.id : 't' + Date.now(), dest, start, end, pax:document.getElementById('tPax').value, rooms:document.getElementById('tRooms').value, cabin:document.getElementById('tCabin').value, flights, hotel, way:document.getElementById('tWay').value, nights:editTrip ? editTrip.nights : 2, cashF:num('tCashF'), cashH:num('tCashH'), hotelPick:editTrip ? editTrip.hotelPick : ''});
+  if(editTrip){ const i = state.trips.indexOf(editTrip); const before = tripDesc(editTrip); state.trips[i] = nt; audit('UPDATE', 'Trip · ' + nt.dest, 'Trip', before, tripDesc(nt)); }
+  else { state.trips.push(nt); audit('CREATE', 'Trip · ' + nt.dest, 'Trip', '—', tripDesc(nt)); }
+  editTrip = null; document.getElementById('tForm').hidden = true; renderTrips(); renderNextTrip(); renderAudit(); toast('Trip saved');
+});
+
+/* research prices for a trip: ask Claude, then preview before saving */
+function startResearch(id){
+  const t = state.trips.find(x => x.id === id); if(!t) return;
+  rsTrip = t; document.getElementById('tRs').open = true;
+  document.getElementById('tRsIntro').textContent = 'Researching prices for ' + tripDesc(t) + '.';
+  document.getElementById('tRsBody').hidden = false; document.getElementById('tRsOut').innerHTML = ''; document.getElementById('tRsPaste').value = ''; document.getElementById('tRsMsg').textContent = '';
+  document.getElementById('tRs').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function buildTripRequest(t){
+  const cards = myCards().map(k => PROGRAMS[k].name).join(', '), nights = tripNights(t);
+  return `Today is ${today()}. I keep a personal credit card points tool for India. Please research award prices for this trip using web search, then reply with ONE JSON object and nothing else (no commentary, no code fence needed).
+
+Trip: from India to ${t.dest}${t.start ? ', ' + t.start + (t.end ? ' to ' + t.end : '') : ''}. ${t.pax} traveller(s)${t.hotel ? ', ' + t.rooms + ' room(s), ' + nights + ' night(s)' : ''}. ${t.flights ? 'Flights: ' + t.cabin + ', ' + (t.way === 2 ? 'return' : 'one way') + '.' : 'No flights needed.'} ${t.hotel ? 'Hotel: needed.' : 'No hotel needed.'}
+My cards: ${cards}. Their transfer partners are in the tool, so give prices for any program that makes sense, not only ones my cards reach.
+
+What I need:
+1. "awards": published award prices. Flights: miles one way, per person, route named like "Mumbai ↔ ${t.dest}". Hotels: points per night per room for a standard room, route = the hotel name (for example "Hyatt Regency Pune"), cabin = "Standard room". Include the program key in "partner", the "cabin", a short "tier" (for example Saver or Peak), "miles", optional "taxes" in rupees, a "note", and "src" as ["Source name", "https://..."].
+2. "cash": typical cash prices as an object, keyed "<route>|<cabin>" exactly as in your awards rows, with a number in rupees (flights: one way per person; hotels: one night). Omit a key if you cannot find a reliable price.
+
+Rules:
+- Only include a row if a published page supports it, and give that page as src with an https link. Do not guess. If you find nothing, return empty lists.
+- Cabins are: ${CABINS.join(', ')}. Program keys are: ${PARTNERS.map(p => p.k).join(', ')}.
+- Keep "app" and "kind" exactly as shown.
+
+Return this shape:
+{"app":"${BK_APP}","kind":"trip-research","version":1,"generated":"${today()}","awards":[{"route":"","partner":"","cabin":"","tier":"","miles":0,"taxes":0,"note":"","src":["",""]}],"cash":{"route|cabin":0}}`;
+}
+document.getElementById('tRsCopy').onclick = () => { if(rsTrip) copyText(buildTripRequest(rsTrip), document.getElementById('tRsMsg'), document.getElementById('tRsReq'), 'Copied. Paste it into a Claude chat that can search the web, then bring the reply back in step 2.'); };
+let rsPending = null;
+document.getElementById('tRsPreview').onclick = () => {
+  const out = document.getElementById('tRsOut'), txt = document.getElementById('tRsPaste').value.trim();
+  if(!txt){ toast('Paste Claude\'s reply first'); return; }
+  let raw; try{ raw = parseLoose(txt); }catch(e){ raw = null; }
+  if(!raw || raw.app !== BK_APP || raw.kind !== 'trip-research'){ out.innerHTML = '<p class="note" style="margin:0;color:var(--poor)">That reply is not in the expected format. Ask Claude again and paste only its reply.</p>'; rsPending = null; return; }
+  const total = Array.isArray(raw.awards) ? raw.awards.length : 0;
+  const aw = sanitizeAwards(raw.awards, today()).filter(a => a.src);
+  const have = new Set(allAwards().map(a => [a.route, a.partner, a.cabin, a.tier, a.miles].join('|')));
+  const fresh = aw.filter(a => !have.has([a.route, a.partner, a.cabin, a.tier, a.miles].join('|')));
+  const cash = {}; if(raw.cash && typeof raw.cash === 'object') Object.keys(raw.cash).slice(0, 40).forEach(k => { const v = +raw.cash[k]; if(typeof k === 'string' && k.includes('|') && k.length <= 120 && v > 0 && v < 1e8) cash[cleanStr(k, 120)] = Math.round(v); });
+  rsPending = {fresh, cash};
+  if(!fresh.length && !Object.keys(cash).length){ out.innerHTML = '<p class="note" style="margin:0">Nothing new to add' + (total && total !== aw.length ? ' (' + (total - aw.length) + ' rows were dropped for having no source or an unusable format)' : '') + '.</p>'; return; }
+  out.innerHTML = '<ul style="margin:0;padding-left:18px;display:grid;gap:4px">' + fresh.map(a => `<li>${esc(a.route)} · ${esc(PARTNER_NAME[a.partner])} · ${esc(a.cabin)}${a.tier ? ' · ' + esc(a.tier) : ''}: <b>${pts(a.miles)}</b> ${a.cabin === 'Standard room' ? 'points per night' : 'miles'} <a href="${esc(a.src[1])}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(a.src[0])}</a></li>`).join('')
+    + Object.keys(cash).map(k => `<li>Typical cash price, ${esc(k.replace('|', ' · '))}: <b>${inr(cash[k])}</b></li>`).join('') + '</ul>'
+    + (total !== aw.length ? `<p class="small">${total - aw.length} row(s) were dropped for having no source or an unusable format.</p>` : '')
+    + '<div class="confirm"><button class="btn primary" id="tRsApply" type="button">Add these prices</button><button class="btn" id="tRsCancel" type="button">Cancel</button></div>';
+  document.getElementById('tRsCancel').onclick = () => { out.innerHTML = ''; rsPending = null; };
+  document.getElementById('tRsApply').onclick = () => {
+    if(!CAN_EDIT || !rsPending) return;
+    rsPending.fresh.forEach((a, i) => { state.awards.push(Object.assign({}, a, {id:'u' + Date.now() + '-' + i, user:true})); audit('CREATE', a.route + ' · ' + PARTNER_NAME[a.partner], 'Award price (trip research)', '—', pts(a.miles) + (a.cabin === 'Standard room' ? ' points per night' : ' miles') + ' (' + a.cabin + ')'); });
+    Object.keys(rsPending.cash).forEach(k => { const old = state.cashRef[k]; state.cashRef[k] = rsPending.cash[k]; audit('UPDATE', k.replace('|', ' · '), 'Typical cash price (trip research)', old == null ? '—' : inr(old), inr(rsPending.cash[k])); });
+    rsPending = null; out.innerHTML = '<p class="note" style="margin:0">Added. Your trips now use these prices.</p>';
+    save(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit(); toast('Prices added');
+  };
+};
+
+/* cards I hold */
+function renderCardChips(){
+  const el = document.getElementById('cardChips');
+  el.innerHTML = '<span class="small" style="align-self:center">Cards I hold:</span>' + Object.entries(PROGRAMS).map(([k,p]) =>
+    `<button type="button" class="chip" data-c="${k}" aria-pressed="${!!state.cards[k]}" title="Show or hide this card">${esc(p.name.replace('Amex ',''))}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const k = b.dataset.c;
+    if(!CAN_EDIT) return;
+    if(state.cards[k] && myCards().length === 1){ toast('Keep at least one card'); return; }
+    const was = !!state.cards[k];
+    state.cards[k] = !was;
+    audit('UPDATE', PROGRAMS[k].name, 'Card held', was ? 'Yes' : 'No', was ? 'No' : 'Yes');
+    refreshAll();
+  });
+}
+function refreshAll(){
+  document.getElementById('userName').textContent = state.userName;
+  renderCardChips(); renderBalances(); renderExample(); renderFilter(); renderBest(); renderCalcSelect(); renderCalc(); renderPrograms(); renderMiles(); renderLinks(); renderPlannerSelects(); renderPlanner(); renderAwards(); renderTrips(); renderNextTrip(); renderAudit();
+}
+
+/* programs tab */
+function reachedFrom(k){
+  const cards = new Set();
+  state.options.forEach(o => { if(partnersOf(o).includes(k)) o.cards.filter(c => state.cards[c]).forEach(c => cards.add(PROGRAMS[c].name)); });
+  return [...cards];
+}
+function renderPrograms(){
+  const row = p => {
+    const from = reachedFrom(p.k);
+    const st = state.programs[p.k] || {held:false, bal:0};
+    return `<tr><td><input type="checkbox" id="ph-${p.k}" data-k="${p.k}" ${st.held ? 'checked' : ''} ${CAN_EDIT ? '' : 'disabled'} aria-label="I have a ${esc(p.name)} account"></td>
+      <td>${esc(p.name)}</td>
+      <td class="r"><input class="num bal" id="pb-${p.k}" data-k="${p.k}" inputmode="numeric" placeholder="0" value="${st.bal ? pts(st.bal) : ''}" ${st.held && CAN_EDIT ? '' : 'disabled'} aria-label="${esc(p.name)} balance"></td>
+      <td><input type="date" class="exp" id="pe-${p.k}" data-k="${p.k}" value="${okDate(st.exp) ? st.exp : ''}" ${st.held && CAN_EDIT ? '' : 'disabled'} aria-label="${esc(p.name)} expiry date"></td>
+      <td class="small">${from.length ? esc(from.join(' · ')) : 'Held directly. Card transfers not tracked'}</td></tr>`;
+  };
+  const head = t => `<tr><th colspan="5">${t}</th></tr>`;
+  document.getElementById('progRows').innerHTML = head('Airlines') + PARTNERS.filter(p => p.type === 'Airline').map(row).join('') + head('Hotels') + PARTNERS.filter(p => p.type === 'Hotel').map(row).join('');
+  document.getElementById('uName').value = state.userName;
+  document.querySelectorAll('#progRows input[type=checkbox]').forEach(cb => cb.onchange = () => {
+    const k = cb.dataset.k, st = state.programs[k] = state.programs[k] || {held:false, bal:0};
+    const was = st.held; st.held = cb.checked;
+    audit('UPDATE', PARTNER_NAME[k], 'Account held', was ? 'Yes' : 'No', st.held ? 'Yes' : 'No');
+    document.getElementById('pb-' + k).disabled = !st.held; document.getElementById('pe-' + k).disabled = !st.held;
+    renderFilter(); renderBest(); renderWallet(); renderPlanner(); renderAudit(); toast('Saved');
+  });
+  document.querySelectorAll('#progRows input.bal').forEach(inp => inp.onchange = () => {
+    const k = inp.dataset.k, st = state.programs[k]; const v = +inp.value.replace(/[^\d]/g,'') || 0;
+    inp.value = v ? pts(v) : '';
+    if(!st || v === (st.bal || 0)) return;
+    audit('UPDATE', PARTNER_NAME[k], 'Balance', pts(st.bal || 0), pts(v));
+    st.bal = v; save(); renderWallet(); renderPlanner(); renderAudit(); toast('Saved');
+  });
+  document.querySelectorAll('#progRows input.exp').forEach(inp => inp.onchange = () => {
+    const k = inp.dataset.k, st = state.programs[k]; const v = okDate(inp.value) ? inp.value : '';
+    if(!st || v === (st.exp || '')) return;
+    audit('UPDATE', PARTNER_NAME[k], 'Expiry date', st.exp || '—', v || '—');
+    if(v) st.exp = v; else delete st.exp;
+    save(); renderWallet(); renderAudit(); toast('Saved');
+  });
+}
+document.getElementById('uName').addEventListener('change', e => {
+  const v = e.target.value.replace(/[<>"]/g,'').trim().slice(0,40) || 'You';
+  e.target.value = v;
+  if(v === state.userName) return;
+  const old = state.userName; state.userName = v;
+  audit('UPDATE', 'Profile', 'Name', old, v);
+  document.getElementById('userName').textContent = v; renderAudit(); toast('Saved');
+});
+
+/* backup and restore */
+const BK_APP = 'points-value-finder';
+const cleanStr = (s, n = 200) => String(s == null ? '' : s).replace(/[<>"]/g, '').slice(0, n);
+const isNum = v => typeof v === 'number' && isFinite(v) && v >= 0;
+const backupPayload = (maxAudit) => ({app:BK_APP, version:2, exported:nowIST(), state:{userName:state.userName, balances:state.balances, cards:state.cards, programs:state.programs, cardExp:state.cardExp, cashRef:state.cashRef, trips:state.trips, preferHeld:state.preferHeld, options:state.options, miles:state.miles, awards:state.awards, deals:state.deals, dealsChecked:state.dealsChecked, packAwards:state.packAwards, audit:maxAudit ? state.audit.slice(0, maxAudit) : state.audit}});
+async function saveBackup(){
+  const text = JSON.stringify(backupPayload(), null, 2), name = 'points-value-backup-' + today() + '.json';
+  const msg = document.getElementById('bkMsg'), ta = document.getElementById('bkText');
+  let dl = null;
+  try{ dl = window.claude ? await window.claude.use('downloads') : null; }catch(e){ dl = null; }
+  if(dl){
+    try{
+      await dl.save({filename:name, data:text});
+      audit('EXPORT', 'Backup', 'File', '—', name); renderAudit();
+      ta.hidden = true; msg.textContent = ''; toast('Backup saved'); return;
+    }catch(e){ if(e && e.code === 'declined') return; }
+  }
+  try{
+    const url = URL.createObjectURL(new Blob([text], {type:'application/json'})), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    audit('EXPORT', 'Backup', 'File', '—', name); renderAudit(); ta.hidden = true; msg.textContent = ''; toast('Backup downloaded'); return;
+  }catch(e){}
+  ta.value = text; ta.hidden = false; ta.select();
+  msg.textContent = 'File saving is not available here. Copy the text below into a file named ' + name + '.';
+}
+function parseBackup(text){
+  const b = JSON.parse(text);
+  if(!b || b.app !== BK_APP || !b.state || typeof b.state !== 'object') throw new Error('not-a-backup');
+  const s = b.state, out = {};
+  out.balances = {}; out.cards = {};
+  Object.keys(PROGRAMS).forEach(k => {
+    out.balances[k] = isNum(s.balances && s.balances[k]) ? Math.round(s.balances[k]) : 0;
+    out.cards[k] = s.cards && typeof s.cards[k] === 'boolean' ? s.cards[k] : DEFAULT_CARDS[k];
+  });
+  if(!Object.values(out.cards).some(Boolean)) out.cards = {pt:true, mrcc:true, atlas:true};
+  out.programs = {};
+  PARTNERS.forEach(p => { const x = s.programs && s.programs[p.k]; if(x && x.held === true) out.programs[p.k] = Object.assign({held:true, bal:isNum(x.bal) ? Math.round(x.bal) : 0}, /^\d{4}-\d{2}-\d{2}$/.test(String(x.exp)) ? {exp:x.exp} : {}); });
+  out.cardExp = {}; Object.keys(PROGRAMS).forEach(k => { const e = s.cardExp && s.cardExp[k]; if(/^\d{4}-\d{2}-\d{2}$/.test(String(e))) out.cardExp[k] = e; });
+  out.cashRef = {}; if(s.cashRef && typeof s.cashRef === 'object') Object.keys(s.cashRef).slice(0, 200).forEach(k => { const v = s.cashRef[k]; if(typeof k === 'string' && k.length <= 120 && isNum(v) && v > 0 && v < 1e8) out.cashRef[cleanStr(k, 120)] = Math.round(v); });
+  out.trips = (Array.isArray(s.trips) ? s.trips : []).slice(0, 60).map(sanitizeTrip).filter(Boolean);
+  out.preferHeld = s.preferHeld !== false;
+  out.userName = cleanStr(s.userName, 40).trim() || 'You';
+  const ver = Number(b.version) || 1;
+  const good = o => o && typeof o.id === 'string' && /^[\w-]{1,40}$/.test(o.id) && typeof o.name === 'string' && Array.isArray(o.cards) && o.cards.length > 0 && o.cards.every(c => PROGRAMS[c])
+    && (o.fixed != null ? isNum(o.fixed) : (isNum(o.ratio) && !!PARTNER_NAME[o.partner])) && (o.cap == null || !!CAPS[o.cap]) && /^\d{4}-\d{2}-\d{2}$/.test(String(o.verified));
+  const opts = ver >= 2 && Array.isArray(s.options) ? s.options.filter(good) : [];
+  out.options = opts.length
+    ? opts.map(o => Object.assign({id:o.id, cards:o.cards.slice(), name:cleanStr(o.name), kind:cleanStr(o.kind, 40), verified:o.verified}, o.fixed != null ? {fixed:o.fixed} : {ratio:o.ratio, partner:o.partner}, o.cap ? {cap:o.cap} : {}))
+    : clone(DEFAULT_OPTIONS);
+  out.miles = clone(DEFAULT_MILES);
+  if(ver >= 2 && s.miles && typeof s.miles === 'object') PARTNERS.forEach(p => { const m = s.miles[p.k]; if(m && typeof m === 'object') out.miles[p.k] = {typ:isNum(m.typ) ? m.typ : null, src:cleanStr(m.src, 160), verified:/^\d{4}-\d{2}-\d{2}$/.test(String(m.verified)) ? m.verified : today()}; });
+  out.awards = (ver >= 2 && Array.isArray(s.awards) ? s.awards : []).filter(a => a && typeof a.route === 'string' && PARTNER_NAME[a.partner] && CABINS.includes(a.cabin) && isNum(a.miles) && a.miles > 0).slice(0, 200)
+    .map((a, i) => ({id:'u' + Date.now() + i, route:cleanStr(a.route, 80), partner:a.partner, cabin:a.cabin, tier:cleanStr(a.tier, 40), miles:Math.round(a.miles), taxes:isNum(a.taxes) ? Math.round(a.taxes) : 0, verified:/^\d{4}-\d{2}-\d{2}$/.test(String(a.verified)) ? a.verified : today(), user:true}));
+  DEFAULT_OPTIONS.forEach(d => { if(!out.options.some(o => o.id === d.id)) out.options.push(clone(d)); });
+  out.optionsVersion = OPTIONS_VERSION;
+  { const dl = ver >= 2 && Array.isArray(s.deals) ? sanitizeDeals(s.deals) : []; out.deals = dl.length ? dl : null;
+    const pa = ver >= 2 && Array.isArray(s.packAwards) ? sanitizeAwards(s.packAwards, today()) : []; out.packAwards = pa.length ? pa : null;
+    out.dealsChecked = okDate(s.dealsChecked) ? s.dealsChecked : null; }
+  out.audit = (Array.isArray(s.audit) ? s.audit : []).slice(0, 500).map(e => ({ts:cleanStr(e && e.ts, 30), user:cleanStr(e && e.user, 40), role:cleanStr(e && e.role, 20), action:cleanStr(e && e.action, 20), record:cleanStr(e && e.record), field:cleanStr(e && e.field), old:cleanStr(e && e.old), nw:cleanStr(e && e.nw)}));
+  return out;
+}
+document.getElementById('bkSave').onclick = saveBackup;
+document.getElementById('bkPick').onclick = () => document.getElementById('bkFile').click();
+document.getElementById('bkFile').onchange = e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  const msg = document.getElementById('bkMsg');
+  if(!f) return;
+  if(f.size > 2e6){ msg.textContent = 'That file is too large to be a backup.'; return; }
+  const r = new FileReader();
+  r.onerror = () => { msg.textContent = 'Could not read that file.'; };
+  r.onload = () => {
+    let parsed;
+    try{ parsed = parseBackup(String(r.result)); }catch(err){ msg.textContent = 'That file is not a Points Value Finder backup. Choose a file saved from this page.'; return; }
+    msg.innerHTML = 'Replace your current data with this backup (' + parsed.audit.length + ' audit entries)? <button class="btn danger" id="bkYes" type="button">Restore</button> <button class="btn" id="bkNo" type="button">Cancel</button>';
+    document.getElementById('bkNo').onclick = () => { msg.textContent = ''; };
+    document.getElementById('bkYes').onclick = () => {
+      Object.assign(state, parsed, {example:false});
+      audit('IMPORT', 'Backup', 'File', '—', cleanStr(f.name, 80));
+      msg.textContent = ''; refreshAll(); renderRates(); toast('Backup restored');
+    };
+  };
+  r.readAsText(f);
+};
+
+
+/* account storage: a private copy of your data, kept in the artifact's database under your own id */
+const cloud = {ref:null, timer:null, busy:false, dirty:false, status:'off', at:''};
+function renderSync(){
+  const el = document.getElementById('syncNote'); if(!el) return;
+  const m = {
+    checking:'Checking account storage…',
+    on:'Saved to your account' + (cloud.at ? ' at ' + cloud.at : '') + '. Your data follows you across devices and is private to you.',
+    off:'Saved in this browser only. Use Save backup to keep a copy, for example in your Google Drive or OneDrive.',
+    error:'Could not save to your account just now. Your data is safe in this browser. It will retry on your next change.'
+  };
+  el.textContent = m[cloud.status] || '';
+}
+function queueCloud(){
+  if(!cloud.ref) return;
+  clearTimeout(cloud.timer); cloud.timer = setTimeout(pushCloud, 900);
+}
+async function pushCloud(){
+  if(!cloud.ref) return;
+  if(cloud.busy){ cloud.dirty = true; return; }
+  cloud.busy = true;
+  try{
+    if(state.example && cloud.cloudReal){ cloud.busy = false; return; }   /* never let example data replace real saved data */
+    await cloud.ref.set({payload:JSON.stringify(backupPayload(300)), updatedAt:state.updatedAt || Date.now(), example:!!state.example});
+    cloud.status = 'on'; cloud.at = nowIST().slice(11, 16);
+  }catch(e){ cloud.status = 'error'; }
+  cloud.busy = false; renderSync();
+  if(cloud.dirty){ cloud.dirty = false; queueCloud(); }
+}
+/* an untouched example state, or a cloud copy that is only example data, must never replace real data */
+const looksExample = x => { try{ const b = x.balances || {}; return Object.keys(EXAMPLE_BAL).every(k => (b[k] || 0) === EXAMPLE_BAL[k]) && !(x.trips || []).length && !Object.keys(x.programs || {}).length && (x.audit || []).length <= 3; }catch(e){ return false; } };
+(async function initCloud(){
+  try{
+    const c = window.claude;
+    const db = c ? await c.use('db') : null, user = c ? await c.use('user') : null;
+    const id = user ? await user.id() : null;
+    if(!db || !id){ cloud.status = 'off'; renderSync(); return; }
+    const ref = db.doc('data/users/' + id + '/profile');
+    const snap = await ref.get();
+    const d = snap.exists ? snap.data() : null;
+    let parsed = null; if(d && typeof d.payload === 'string'){ try{ parsed = parseBackup(d.payload); }catch(e){ parsed = null; } }
+    const cloudReal = !!parsed && d.example !== true && !looksExample(parsed);
+    const localFresh = !!state.example;
+    cloud.cloudReal = cloudReal;
+    const cloudNewer = !!parsed && (d.updatedAt || 0) > (state.updatedAt || 0);
+    if(cloudReal && (localFresh || cloudNewer)){
+      Object.assign(state, parsed, {example:false, updatedAt:d.updatedAt || Date.now()});
+      try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+      cloud.ref = ref; cloud.status = 'on'; cloud.at = nowIST().slice(11, 16);
+      refreshAll(); renderRates(); showResetButton(); renderSync(); toast('Loaded from your account');
+    } else if(localFresh){
+      cloud.ref = ref; cloud.status = 'on'; cloud.at = nowIST().slice(11, 16); renderSync();   /* nothing of yours to save yet */
+    } else {
+      cloud.ref = ref; cloud.status = 'checking'; renderSync();
+      if(!cloudReal || (state.updatedAt || 0) > (d.updatedAt || 0)) await pushCloud(); else { cloud.status = 'on'; cloud.at = nowIST().slice(11, 16); renderSync(); }
+    }
+  }catch(e){ cloud.status = cloud.ref ? 'error' : 'off'; renderSync(); }
+})();
+
+/* manual refresh: update packs and answers pasted from Claude */
+const dealsNow = () => Array.isArray(state.deals) ? state.deals : DEALS;
+const checkedNow = () => state.dealsChecked || DEALS_CHECKED;
+const okDate = d => /^\d{4}-\d{2}-\d{2}$/.test(String(d));
+const safeUrl = u => { const x = String(u == null ? '' : u).trim(); return /^https:\/\/[^\s<>"'\\]{1,300}$/.test(x) ? x : ''; };
+function parseLoose(text){
+  const t = String(text || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if(a < 0 || b <= a) throw new Error('no-json');
+  return JSON.parse(t.slice(a, b + 1));
+}
+function sanitizeDeals(arr){
+  return (Array.isArray(arr) ? arr : []).slice(0, 20).filter(d => d && typeof d.title === 'string' && DEAL_ORDER[d.status] != null).map(d => ({
+    status:d.status, title:cleanStr(d.title, 120), cards:(Array.isArray(d.cards) ? d.cards : []).filter(c => PROGRAMS[c]),
+    ends:okDate(d.ends) ? d.ends : null, detail:cleanStr(d.detail, 400), action:cleanStr(d.action, 300),
+    src:[cleanStr(d.src && d.src[0], 60) || 'Source', safeUrl(d.src && d.src[1])]
+  }));
+}
+function sanitizeAwards(arr, gen){
+  return (Array.isArray(arr) ? arr : []).slice(0, 150).filter(a => a && typeof a.route === 'string' && PARTNER_NAME[a.partner] && CABINS.includes(a.cabin) && isNum(a.miles) && a.miles > 0).map((a, i) => {
+    const url = safeUrl(a.src && a.src[1]);
+    return {id:'p' + i, route:cleanStr(a.route, 80), partner:a.partner, cabin:a.cabin, tier:cleanStr(a.tier, 40), miles:Math.round(a.miles), taxes:isNum(a.taxes) ? Math.round(a.taxes) : 0,
+      src:url ? [cleanStr(a.src[0], 60) || 'Source', url] : null, note:cleanStr(a.note, 160), verified:okDate(a.verified) ? a.verified : gen};
+  });
+}
+function sanitizePack(raw){
+  if(!raw || raw.app !== BK_APP || raw.kind !== 'update-pack') throw new Error('not-a-pack');
+  const gen = okDate(raw.generated) ? raw.generated : today(), out = {generated:gen, miles:{}, options:[]};
+  if(raw.miles && typeof raw.miles === 'object') PARTNERS.forEach(p => { const m = raw.miles[p.k];
+    if(m && typeof m === 'object' && (m.typ === null || isNum(m.typ))) out.miles[p.k] = {typ:m.typ, src:cleanStr(m.src, 160), verified:okDate(m.verified) ? m.verified : gen}; });
+  (Array.isArray(raw.options) ? raw.options : []).forEach(o => {
+    const cur = o && typeof o.id === 'string' ? state.options.find(x => x.id === o.id) : null; if(!cur) return;
+    const c = {id:cur.id};
+    if(cur.fixed != null){ if(isNum(o.fixed)) c.fixed = o.fixed; } else if(isNum(o.ratio)) c.ratio = o.ratio;
+    if(cur.cap && o.cap != null && CAPS[o.cap]) c.cap = o.cap;
+    if(c.fixed != null || c.ratio != null || c.cap) out.options.push(c);
+  });
+  const aw = sanitizeAwards(raw.awards, gen), dl = sanitizeDeals(raw.deals);
+  if(aw.length) out.awards = aw; if(dl.length) out.deals = dl;
+  return out;
+}
+function planPack(p){
+  const ch = [], quiet = [];
+  Object.keys(p.miles).forEach(k => {
+    const cur = state.miles[k] || {typ:null, src:'', verified:''}, n = p.miles[k];
+    if(cur.typ !== n.typ) ch.push({text:'Mile value, ' + PARTNER_NAME[k] + ': ' + (cur.typ == null ? 'none' : '₹' + cur.typ) + ' → ' + (n.typ == null ? 'none' : '₹' + n.typ),
+      run:() => { audit('UPDATE', PARTNER_NAME[k], '₹ per point', cur.typ == null ? '—' : cur.typ, n.typ == null ? '—' : n.typ); } });
+    quiet.push(() => { const m = state.miles[k] || (state.miles[k] = {typ:null, src:'', verified:''}); m.typ = n.typ; m.src = n.src || 'Update file'; m.verified = n.verified; });
+  });
+  p.options.forEach(c => {
+    const cur = state.options.find(x => x.id === c.id);
+    [['ratio', 'Ratio'], ['fixed', '₹ per pt'], ['cap', 'Yearly cap group']].forEach(([f, lbl]) => {
+      if(c[f] != null && c[f] !== cur[f]) {
+        ch.push({text:cur.name + ', ' + lbl.toLowerCase() + ': ' + cur[f] + ' → ' + c[f], run:() => { audit('UPDATE', cur.name, lbl, cur[f], c[f]); }});
+        quiet.push(() => { cur[f] = c[f]; cur.verified = p.generated; });
+      }
+    });
+  });
+  if(p.awards){
+    const cur = baseAwards();
+    const key = a => [a.route, a.partner, a.cabin, a.tier, a.miles, a.taxes || 0].join('|');
+    if(cur.map(key).sort().join('\n') !== p.awards.map(key).sort().join('\n'))
+      ch.push({text:'Award prices: ' + p.awards.length + ' rows replace ' + cur.length, run:() => { audit('UPDATE', 'Award prices', 'Rows on file', cur.length, p.awards.length); }});
+    quiet.push(() => { state.packAwards = p.awards; });
+  }
+  if(p.deals){
+    const cur = dealsNow(), key = d => d.status + '|' + d.title + '|' + (d.ends || '');
+    if(cur.map(key).join('\n') !== p.deals.map(key).join('\n'))
+      ch.push({text:'Deals: ' + p.deals.length + ' items replace ' + cur.length + ', checked ' + p.generated, run:() => { audit('UPDATE', 'Deals', 'Items', cur.length, p.deals.length); }});
+    quiet.push(() => { state.deals = p.deals; state.dealsChecked = p.generated; });
+  }
+  return {ch, quiet};
+}
+function renderAll(){ renderDeals(); renderRates(); refreshAll(); renderUpdateStatus(); }
+function renderUpdateStatus(){
+  const el = document.getElementById('uStatus'); if(!el) return;
+  const newest = Object.values(state.miles || {}).map(m => m && m.verified).filter(okDate).sort().pop();
+  el.textContent = 'Deals last checked ' + checkedNow() + (newest ? '. Mile values last checked ' + newest : '') + '.';
+}
+function showPackPreview(text){
+  const box = document.getElementById('uResult');
+  let plan, pack;
+  try{ pack = sanitizePack(parseLoose(text)); plan = planPack(pack); }
+  catch(e){ box.innerHTML = '<p class="note" style="margin:0;color:var(--poor)">That is not an update this page can read. Ask Claude again using the request from step 1, and paste only its reply.</p>'; return; }
+  if(!plan.ch.length){
+    box.innerHTML = '<p class="note" style="margin:0">Nothing to change. Your data already matches this update.</p>';
+    plan.quiet.forEach(f => f()); save(); renderAll(); return;
+  }
+  box.innerHTML = '<p class="small" style="margin:0">These changes will be applied (update dated ' + esc(pack.generated) + '):</p><ul class="small" style="margin:0;padding-left:18px;display:grid;gap:3px">'
+    + plan.ch.map(c => '<li>' + esc(c.text) + '</li>').join('') + '</ul><div class="confirm"><button class="btn primary" id="uApply" type="button">Apply changes</button><button class="btn" id="uCancel" type="button">Cancel</button></div>';
+  document.getElementById('uCancel').onclick = () => { box.innerHTML = ''; };
+  document.getElementById('uApply').onclick = () => {
+    plan.ch.forEach(c => c.run()); plan.quiet.forEach(f => f());
+    audit('IMPORT', 'Update', 'Data', '—', pack.generated + ', ' + plan.ch.length + ' changes');
+    save(); box.innerHTML = ''; document.getElementById('uPaste').value = ''; renderAll(); toast('Update applied');
+  };
+}
+function buildPack(){
+  const ms = k => state.miles[k] || {};
+  return {app:BK_APP, kind:'update-pack', version:1, generated:today(),
+    miles:Object.fromEntries(PARTNERS.map(p => [p.k, {typ:milesTyp(p.k), src:ms(p.k).src || '', verified:okDate(ms(p.k).verified) ? ms(p.k).verified : today()}])),
+    options:state.options.map(o => Object.assign({id:o.id, name:o.name}, o.fixed != null ? {fixed:o.fixed} : {ratio:o.ratio}, o.cap ? {cap:o.cap} : {})),
+    awards:baseAwards().map(a => ({route:a.route, partner:a.partner, cabin:a.cabin, tier:a.tier, miles:a.miles, taxes:a.taxes || 0, src:a.src || null, note:a.note || '', verified:a.verified})),
+    deals:dealsNow().map(d => ({status:d.status, title:d.title, cards:d.cards, ends:d.ends, detail:d.detail, action:d.action, src:d.src}))};
+}
+function buildUpdateRequest(){
+  return `Today is ${today()}. I keep a personal credit card points tool for India. Please refresh its data using web search, then reply with ONE JSON object and nothing else (no commentary, no code fence needed).
+
+Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints).
+
+Check the latest on:
+1. The rupee value of one mile or point in each loyalty program ("miles"). Use published Indian points-blog estimates, and put the source in "src". Use null if you cannot find a reliable figure.
+2. Transfer ratios (partner points per 1 card point) and yearly cap groups ("options"). Change a ratio only if a source says it changed.
+3. Award prices in miles, one way, per person, for popular routes from India ("awards"). Add or correct a row only when a published price supports it, with a source link.
+4. Live deals: transfer bonuses, promotions, devaluations and deadlines for these cards ("deals").
+
+Rules:
+- Keep every value you have no evidence to change exactly as given below.
+- Every award row and deal needs src as ["Source name", "https://..."] with an https link.
+- Dates are YYYY-MM-DD. Set "generated" to today's date.
+- Deal status is one of: active (usable now), watch (upcoming or uncertain), info (FYI), none (nothing found). Deal cards use pt, mrcc, atlas.
+- Cabins are: ${CABINS.join(', ')}. Program keys are: ${PARTNERS.map(p => p.k).join(', ')}.
+- If you are unsure about something, say so in that item's text rather than guessing.
+- Keep "app" and "kind" exactly as they are.
+
+Current data (edit it and return the whole object):
+${JSON.stringify(buildPack())}`;
+}
+async function copyText(text, msgEl, taEl, okMsg){
+  try{ await navigator.clipboard.writeText(text); msgEl.textContent = okMsg; taEl.hidden = true; return; }catch(e){}
+  taEl.value = text; taEl.hidden = false; taEl.select();
+  msgEl.textContent = 'Copying is blocked here. Select all the text below, copy it, then paste it into Claude.';
+}
+function saveTextFile(name, text, msgEl, taEl){
+  try{
+    const url = URL.createObjectURL(new Blob([text], {type:'application/json'})), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    taEl.hidden = true; msgEl.textContent = ''; return true;
+  }catch(e){}
+  taEl.value = text; taEl.hidden = false; taEl.select();
+  msgEl.textContent = 'File saving is not available here. Copy the text below into a file named ' + name + '.'; return false;
+}
+document.getElementById('uCopy').onclick = () => copyText(buildUpdateRequest(), document.getElementById('uCopyMsg'), document.getElementById('uReq'), 'Copied. Paste it into a Claude chat that can search the web, then bring the reply back in step 2.');
+document.getElementById('uPreview').onclick = () => { const t = document.getElementById('uPaste').value.trim(); if(t) showPackPreview(t); else toast('Paste Claude\'s reply first'); };
+document.getElementById('uPick').onclick = () => document.getElementById('uFile').click();
+document.getElementById('uFile').onchange = e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  if(f.size > 2e6){ document.getElementById('uResult').innerHTML = '<p class="note" style="margin:0;color:var(--poor)">That file is too large to be an update.</p>'; return; }
+  const r = new FileReader();
+  r.onload = () => { document.getElementById('uPaste').value = ''; showPackPreview(String(r.result)); };
+  r.readAsText(f);
+};
+document.getElementById('uSave').onclick = () => {
+  const name = 'points-value-update-' + today() + '.json';
+  if(saveTextFile(name, JSON.stringify(buildPack(), null, 2), document.getElementById('uSaveMsg'), document.getElementById('uOut'))){ audit('EXPORT', 'Update', 'File', '—', name); renderAudit(); toast('Update file downloaded'); }
+};
+document.getElementById('sCopy').onclick = () => {
+  const q = document.getElementById('sQ').value.trim(), msg = document.getElementById('sManMsg');
+  if(!q){ msg.textContent = 'Type your question in the box above first.'; return; }
+  copyText(buildPrompt(q), msg, document.getElementById('sReq'), 'Copied. Paste it into Claude, then paste Claude\'s reply below.');
+};
+document.getElementById('sShow').onclick = () => {
+  const msg = document.getElementById('sManMsg'); let res;
+  try{ res = cleanClaude(parseLoose(document.getElementById('sPaste').value)); }catch(e){ res = null; }
+  if(!res || (!res.summary && !res.ids.length)){ msg.textContent = 'That reply did not contain an answer this page can show. Ask Claude again and paste only its reply.'; return; }
+  msg.textContent = ''; showResult(res, 'manual');
+  audit('SEARCH', 'Smart search', 'Query (pasted from Claude)', '—', document.getElementById('sQ').value.trim().slice(0, 120)); renderAudit();
+};
+
+/* expiry: balances that lapse soon */
+const daysTo = d => Math.round((new Date(d + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 864e5);
+const dmy = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+const cardBest = k => Math.max(0, ...liveOptions().filter(o => o.cards.includes(k)).map(o => vpp(o) || 0));
+function expiryList(){
+  const progs = PARTNERS.filter(p => isHeld(p.k) && okDate(state.programs[p.k].exp) && (state.programs[p.k].bal || 0) > 0)
+    .map(p => ({name:p.name, type:p.type, unit:'points', bal:state.programs[p.k].bal, exp:state.programs[p.k].exp, val:milesTyp(p.k)}));
+  const cards = myCards().filter(k => okDate(state.cardExp[k]) && (state.balances[k] || 0) > 0)
+    .map(k => ({name:PROGRAMS[k].name, type:'Card', unit:PROGRAMS[k].unit, bal:state.balances[k], exp:state.cardExp[k], val:cardBest(k) || null}));
+  return progs.concat(cards).map(x => Object.assign(x, {d:daysTo(x.exp)})).sort((a, b) => a.d - b.d);
+}
+const whenText = d => d < 0 ? 'expired ' + (-d) + ' day' + (d === -1 ? '' : 's') + ' ago' : d === 0 ? 'expire today' : 'expire in ' + d + ' day' + (d === 1 ? '' : 's');
+function renderExpiry(){
+  const el = document.getElementById('expiry'); if(!el) return;
+  const soon = expiryList().filter(x => x.d <= 90);
+  el.innerHTML = soon.map(x => `<div class="exp-alert ${x.d <= 30 ? 'poor' : ''}"><span><b>${esc(x.name)}</b>: ${pts(x.bal)} ${esc(x.unit)} ${whenText(x.d)} (${esc(dmy(x.exp))})${x.val == null ? '' : ', worth about ' + inr(x.bal * x.val)}. ${x.type === 'Card' ? 'Redeem or transfer them before then. Check the card issuer\'s rules.' : 'Check the program\'s rules on keeping points alive.'}</span>${x.type === 'Airline' ? '<button class="btn" type="button" data-plan>Plan a trip</button>' : ''}</div>`).join('');
+  el.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => showView('trips'));
+}
+
+/* wallet: points already held in airline and hotel programs */
+function renderWallet(){
+  renderExpiry(); renderCalcSelect(); renderCalc();
+  const el = document.getElementById('wallet'); if(!el) return;
+  const rows = PARTNERS.filter(p => isHeld(p.k) && (state.programs[p.k].bal || 0) > 0);
+  if(!rows.length){ el.innerHTML = '<p class="note" style="margin:0">Nothing here yet. Hold points in an airline or hotel program, such as Marriott Bonvoy, Accor ALL, IHG, Hyatt, Air India or Emirates? Add them in Settings → Cards and programs.</p>'; walletTotal = 0; renderHero(); return; }
+  let total = 0, unrated = 0;
+  const cards = rows.map(p => {
+    const bal = state.programs[p.k].bal, v = milesTyp(p.k), m = state.miles[p.k] || {};
+    const worth = v == null ? null : bal * v;
+    if(worth == null) unrated++; else total += worth;
+    const lines = [];
+    const ex = state.programs[p.k].exp;
+    if(okDate(ex)){ const d = daysTo(ex); lines.push(`<div class="plan-line"><span>${d < 0 ? 'Expired' : 'Expires'} ${esc(dmy(ex))}${d >= 0 ? ' (in ' + d + ' day' + (d === 1 ? '' : 's') + ')' : ''}</span></div>`); }
+    if(v == null) lines.push('<div class="plan-line"><span>No ₹ value set for this program yet. Add one in Settings → Rates.</span></div>');
+    else lines.push(`<div class="plan-line"><span>${pts(bal)} points × <span class="num">₹${fmt(v)}</span> · ${esc(m.src || 'Your value')} · checked ${esc(m.verified || '—')}</span></div>`);
+    const aw = allAwards().filter(a => a.partner === p.k).sort((a, b) => a.miles - b.miles).slice(0, 3);
+    aw.forEach(a => { const n = Math.floor(bal / a.miles), h = p.type === 'Hotel';
+      lines.push(`<div class="plan-line"><span>${n >= 1 ? '<b>' + n + (h ? ' night' + (n > 1 ? 's' : '') : '×') + '</b> ' : ''}${esc(a.route)}${h ? '' : ', ' + esc(a.cabin)}${a.tier ? ' (' + esc(a.tier) + ')' : ''}, ${pts(a.miles)} ${h ? 'per night' : 'one way'}${n >= 1 ? '' : ' · ' + pts(a.miles - bal) + ' more needed'}</span></div>`); });
+    if(p.type === 'Hotel') lines.push('<div class="plan-line"><span>Hotel points are usually best used on room stays. Compare the points price with the cash rate for your dates.</span></div>');
+    else if(!aw.length) lines.push('<div class="plan-line"><span>No award prices on file for this program. Add one on the Trips page.</span></div>');
+    return `<div class="plan-card"><div class="plan-head"><span>${esc(p.name)}</span><span class="total">${worth == null ? 'Unrated' : inr(worth)}</span></div>${lines.join('')}</div>`;
+  }).join('');
+  el.innerHTML = cards + `<div class="plan-head"><span>Total in these programs</span><span class="total">${inr(total)}${unrated ? ' + ' + unrated + ' unrated' : ''}</span></div>`;
+  walletTotal = total; renderHero();
+}
+
+/* refresh button: pulls an update file from a data feed address */
+const DEFAULT_FEED = 'https://raw.githubusercontent.com/aadsouza2810/Pointsmith/main/points-value-feed.json';
+const feedNow = () => safeUrl(state.feedUrl) || DEFAULT_FEED;
+function refreshNote(html){ const m = document.getElementById('refreshMsg'); m.innerHTML = html; m.hidden = !html; }
+async function refreshData(){
+  const btn = document.getElementById('refreshBtn'), url = feedNow();
+  if(!url){
+    refreshNote('<span>No data feed is set up yet, so there is nothing to fetch. Refresh by hand, or add a feed address.</span><button class="btn primary" type="button" id="rfOpen">Open Update</button>');
+    document.getElementById('rfOpen').onclick = () => { refreshNote(''); showView('settings', 'update'); };
+    return;
+  }
+  btn.classList.add('busy'); btn.disabled = true; refreshNote('<span>Checking for newer data…</span>');
+  let text = null;
+  try{
+    const r = await fetch(url, {cache:'no-store', credentials:'omit'});
+    if(!r.ok) throw new Error('http');
+    text = await r.text();
+    if(text.length > 2e6) throw new Error('size');
+  }catch(e){ text = null; }
+  btn.classList.remove('busy'); btn.disabled = false;
+  if(text == null){ refreshNote('<span>Could not reach the data feed. Check your connection and try again, or load an update file in Settings → Update.</span>'); return; }
+  let pack, plan;
+  try{ pack = sanitizePack(parseLoose(text)); plan = planPack(pack); }
+  catch(e){ refreshNote('<span>The data feed did not contain an update this page can read.</span>'); return; }
+  if(!plan.ch.length){
+    plan.quiet.forEach(f => f()); save(); renderAll();
+    refreshNote('<span>You already have the latest data, dated ' + esc(pack.generated) + '.</span>'); setTimeout(() => refreshNote(''), 4000); return;
+  }
+  refreshNote('');
+  showView('settings', 'update'); showPackPreview(text);
+  toast(plan.ch.length + ' change' + (plan.ch.length > 1 ? 's' : '') + ' found. Review and apply');
+}
+document.getElementById('refreshBtn').onclick = refreshData;
+document.getElementById('feedUrl').value = state.feedUrl || '';
+document.getElementById('feedSave').onclick = () => {
+  const raw = document.getElementById('feedUrl').value.trim(), msg = document.getElementById('feedMsg');
+  const url = raw ? safeUrl(raw) : '';
+  if(raw && !url){ msg.textContent = 'Enter a full web address that starts with https://'; return; }
+  const old = state.feedUrl || '';
+  if(url !== old){ state.feedUrl = url; audit('UPDATE', 'Data feed', 'Address', old || '—', url || '—'); renderAudit(); }
+  msg.textContent = url ? 'Saved. Press Refresh data at the top to check it.' : 'Feed removed. Refresh by hand with the steps above.';
+};
+
+/* sections */
+const VIEW_SECTIONS = {home:['sec-search','hero','expiry','nextTrip','sec-bal','tab-best'], trips:['tab-trips','tab-plan','tab-check'], deals:['tab-deals'], settings:['setNav']};
+const ALL_SECTIONS = ['sec-search','hero','expiry','nextTrip','sec-bal','tab-trips','tab-best','tab-plan','tab-check','tab-deals','setNav','tab-setup','tab-rates','tab-update','tab-audit'];
+function showView(v, sub){
+  view = v; if(sub) setTab = sub;
+  const on = new Set(VIEW_SECTIONS[v]); if(v === 'settings') on.add('tab-' + setTab);
+  ALL_SECTIONS.forEach(id => { document.getElementById(id).hidden = !on.has(id); });
+  document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', x.dataset.view === v));
+  document.querySelectorAll('#setNav button').forEach(x => x.setAttribute('aria-pressed', x.dataset.set === setTab));
+  renderWizard();
+  try{ window.scrollTo(0, 0); }catch(e){}
+}
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showView(b.dataset.view));
+document.querySelectorAll('#setNav button').forEach(b => b.onclick = () => showView('settings', b.dataset.set));
+document.getElementById('sec-search').addEventListener('focusin', e => e.currentTarget.classList.add('open'));
+
+/* headline and compact balances */
+function renderHero(){
+  const hv = document.getElementById('heroVal'); if(!hv) return;
+  renderExpiry();
+  hv.textContent = inr(planGrand + walletTotal);
+  const parts = [inr(planGrand) + ' from card points, using the best plan'];
+  if(walletTotal > 0) parts.push(inr(walletTotal) + ' in airline and hotel programs');
+  document.getElementById('heroSub').textContent = parts.join(' · ') + (state.example ? ' · example balances' : '');
+  document.getElementById('planSum').textContent = inr(planGrand);
+  document.getElementById('walletSum').textContent = walletTotal > 0 ? inr(walletTotal) : '';
+  document.getElementById('balSummary').innerHTML = myCards().map(k =>
+    `<span class="bpill">${esc(PROGRAMS[k].name.replace('Amex ', '').replace(' (HDFC or SBI)', ''))} <b>${pts(state.balances[k] || 0)}</b></span>`).join('');
+}
+
+/* first-time setup */
+const wz = {step:0, cards:null, bal:{}, progs:{}};
+const wizardOn = () => !!state.example && !state.onboarded && CAN_EDIT;
+function renderWizard(){
+  const el = document.getElementById('wizard'); if(!el) return;
+  el.hidden = !(wizardOn() && view === 'home'); if(el.hidden) return;
+  if(!wz.cards) wz.cards = Object.assign({}, state.cards);
+  const titles = ['Which cards do you hold?', 'How many points do you have?', 'Which programs have you joined?'];
+  const helps = ['Three quick steps and the rankings are yours. Tick every card you hold.', 'Type the balance on each card. Leave a box empty if you are not sure, and change it later.', 'Optional. Tick the airline and hotel programs where you already have an account, so the tool can tell you what you can use today.'];
+  document.getElementById('wzTitle').textContent = titles[wz.step];
+  document.getElementById('wzHelp').textContent = helps[wz.step];
+  document.getElementById('wzSteps').innerHTML = [0,1,2].map(i => `<i class="${i <= wz.step ? 'on' : ''}"></i>`).join('');
+  const body = document.getElementById('wzBody');
+  const held = Object.keys(PROGRAMS).filter(k => wz.cards[k]);
+  if(wz.step === 0){
+    body.innerHTML = '<div class="picks">' + Object.entries(PROGRAMS).map(([k, p]) => `<label class="pick"><input type="checkbox" data-k="${k}" ${wz.cards[k] ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') + '</div>';
+    body.querySelectorAll('input').forEach(i => i.onchange = () => { wz.cards[i.dataset.k] = i.checked; });
+  } else if(wz.step === 1){
+    body.innerHTML = '<div class="balances">' + held.map(k => `<label class="bal"><span class="label">${esc(PROGRAMS[k].name)}</span><input class="num" inputmode="numeric" data-k="${k}" placeholder="0" value="${wz.bal[k] ? pts(wz.bal[k]) : ''}"><span class="unit">${esc(PROGRAMS[k].unit)}</span></label>`).join('') + '</div>';
+    body.querySelectorAll('input').forEach(i => { i.oninput = () => { wz.bal[i.dataset.k] = +i.value.replace(/[^\d]/g, '') || 0; }; i.onchange = () => { i.value = wz.bal[i.dataset.k] ? pts(wz.bal[i.dataset.k]) : ''; }; });
+  } else {
+    const reach = PARTNERS.filter(p => state.options.some(o => o.partner === p.k && o.cards.some(c => wz.cards[c])));
+    body.innerHTML = '<div class="picks">' + reach.map(p => `<label class="pick"><input type="checkbox" data-k="${p.k}" ${wz.progs[p.k] ? 'checked' : ''}><span>${esc(p.name)}</span></label>`).join('') + '</div>';
+    body.querySelectorAll('input').forEach(i => i.onchange = () => { wz.progs[i.dataset.k] = i.checked; });
+  }
+  document.getElementById('wzBack').hidden = wz.step === 0;
+  document.getElementById('wzNext').textContent = wz.step === 2 ? 'Finish' : 'Next';
+}
+function finishWizard(skip){
+  if(!skip){
+    Object.keys(PROGRAMS).forEach(k => { const was = !!state.cards[k], now = !!wz.cards[k];
+      if(was !== now){ state.cards[k] = now; audit('UPDATE', PROGRAMS[k].name, 'Card held', was ? 'Yes' : 'No', now ? 'Yes' : 'No'); }
+      const v = now ? (wz.bal[k] || 0) : 0; state.balances[k] = v;
+      if(now) audit('UPDATE', PROGRAMS[k].name, 'Balance', '—', pts(v)); });
+    Object.keys(wz.progs).forEach(k => { if(wz.progs[k] && !isHeld(k)){ state.programs[k] = Object.assign({bal:0}, state.programs[k], {held:true}); audit('UPDATE', PARTNER_NAME[k], 'Account held', 'No', 'Yes'); } });
+    state.example = false;
+  }
+  state.onboarded = true; save(); refreshAll(); renderRates(); toast(skip ? 'Setup skipped' : 'You are set up');
+}
+document.getElementById('wzSkip').onclick = () => finishWizard(true);
+document.getElementById('wzBack').onclick = () => { if(wz.step > 0){ wz.step--; renderWizard(); } };
+document.getElementById('wzNext').onclick = () => {
+  if(wz.step === 0 && !Object.values(wz.cards).some(Boolean)){ toast('Tick at least one card'); return; }
+  if(wz.step === 2){ finishWizard(false); return; }
+  wz.step++; renderWizard();
+};
+
+/* phone layout: label each table cell with its column heading */
+function labelCells(tb){
+  const ths = [...tb.closest('table').querySelectorAll('thead th')].map(t => t.textContent.trim());
+  tb.querySelectorAll('tr').forEach(tr => [...tr.children].forEach((td, i) => { if(td.tagName === 'TD' && !td.hasAttribute('colspan')) td.dataset.th = ths[i] || ''; }));
+}
+document.querySelectorAll('.tbl tbody').forEach(tb => { if(window.MutationObserver) new MutationObserver(() => labelCells(tb)).observe(tb, {childList:true}); labelCells(tb); });
+
+/* deals: refreshed by asking Claude, which searches the web and updates this list */
+const DEALS_CHECKED = '2026-10-20';
+const DEALS = [
+  {status:'active', title:'Amex MR to Virgin Atlantic at 5:4 and Hilton at 1:1.5', cards:['pt','mrcc'], ends:null,
+   detail:'Amex improved these two ratios on 18 Aug 2026 without an announcement. It may be a standing change or an unlabelled bonus.',
+   action:'If you already have a Virgin award seat in mind, this is the best airline ratio Amex offers. Do not transfer without a seat found.',
+   src:['Magnify', 'https://magnify.club/guides/amex-india-transfer-partners/']},
+  {status:'watch', title:'Amex ends points pooling between cards', cards:['pt','mrcc'], ends:null,
+   detail:'MR points on each card will be kept separately and cannot be combined. Sources give 11 Oct and 15 Nov 2026 as the date, so check your Amex notice.',
+   action:'Plan each card on its own. A transfer needs the minimum block on one card, for example 800 MR for Virgin.',
+   src:['LiveFromALounge', 'https://livefromalounge.com/american-express-membership-rewards-india-changes-coming-october-11-2026']},
+  {status:'watch', title:'Axis yearly transfer allowance resets on 1 January', cards:['atlas'], ends:'2026-12-31',
+   detail:'Atlas can send 30,000 EDGE Miles a year to Group A partners (KrisFlyer, Air India, Flying Blue, Accor). Unused allowance does not carry over.',
+   action:'Decide before December which Group A partner gets it. At 1:2 that is up to 60,000 partner miles.',
+   src:['PickMyCard', 'https://www.pickmycard.in/blog/axis-edge-transfer-partners-september-2026']},
+  {status:'watch', title:'Flying Blue Promo Rewards', cards:['atlas'], ends:null,
+   detail:'Flying Blue runs monthly discounted awards, often about 25% off from Indian cities. I could not confirm the November promo yet.',
+   action:'Check the Flying Blue promo page at the start of next month. Atlas sends to Flying Blue at 1:2 within the Group A cap.',
+   src:['Magnify guide', 'https://magnify.club/guides/flying-blue-promo-rewards-guide/']},
+  {status:'info', title:'Vietnam Airlines LotusDay, 50% off awards', cards:[], ends:'2026-10-31',
+   detail:'Business class return to Vietnam is 60,000 Lotusmiles during the sale. Atlas converts to Vietnam at 2:1, and the Group A cap allows at most 15,000 miles a year.',
+   action:'Not practical with your cards.',
+   src:['Magnify', 'https://magnify.club/guides/vietnam-airlines-lotusday-50-percent-award-discount/']},
+  {status:'info', title:'Amex MRCC 50% fee waiver removed', cards:['mrcc'], ends:null,
+   detail:'The 50% renewal waiver for ₹90,000 to ₹1,49,999 of spend is gone. The full waiver at ₹1.5 lakh stays. Renewal fee is ₹4,500.',
+   action:'Check your annual spend against the ₹1.5 lakh line.',
+   src:['PickMyCard', 'https://www.pickmycard.in/blog/amex-membership-rewards-changes-october-2026']},
+  {status:'none', title:'No bank transfer bonuses running', cards:['pt','mrcc','atlas'], ends:null,
+   detail:'Two India trackers list no live transfer bonus for Amex or Axis. They are not real-time, and bonuses are rare in India, usually 20% to 30%.',
+   action:'Transfer only against a booking you have found.',
+   src:['CreditCardBasket', 'https://creditcardbasket.in/transfer-bonuses']}
+];
+const DEAL_ORDER = {active:0, watch:1, info:2, none:3};
+const DEAL_LABEL = {active:['good','Active'], watch:['fair','Watch'], info:['none','FYI'], none:['none','None found']};
+const AWARD_LINKS = [['Air India Maharaja Club','https://www.airindia.com/'],['Flying Blue','https://www.flyingblue.com/'],['Singapore KrisFlyer','https://www.singaporeair.com/'],['Virgin Atlantic','https://www.virginatlantic.com/'],['Marriott Bonvoy','https://www.marriott.com/'],['Hilton Honors','https://www.hilton.com/']];
+function renderDeals(){
+  document.getElementById('dealsStamp').textContent = 'Last checked ' + checkedNow() + '. Refresh it from Settings → Update, and confirm on each program\'s site.';
+  document.getElementById('deals').innerHTML = dealsNow().slice().sort((a,b) => DEAL_ORDER[a.status] - DEAL_ORDER[b.status]).map(d => {
+    const [cls, lbl] = DEAL_LABEL[d.status];
+    const cards = d.cards.length ? d.cards.map(c => PROGRAMS[c].name).join(' · ') : 'Not for your cards';
+    return `<article class="deal"><div class="top"><h3>${esc(d.title)}</h3><span class="pill ${cls}">${lbl}</span></div>
+      <p>${esc(d.detail)}</p><p class="act">${esc(d.action)}</p>
+      <div class="meta"><span>${esc(cards)}</span>${d.ends ? `<span>Ends ${d.ends}</span>` : ''}${d.src && d.src[1] ? `<a href="${esc(d.src[1])}" target="_blank" rel="noopener">${esc(d.src[0])}</a>` : ''}</div></article>`;
+  }).join('');
+  document.getElementById('awardLinks').innerHTML = AWARD_LINKS.map(([n,u]) => `<a class="chip" href="${u}" target="_blank" rel="noopener">${esc(n)}</a>`).join('');
+}
+
+/* smart search */
+let sampleFn = null, sCtl = null;
+(async () => { try{ sampleFn = window.claude ? await window.claude.use('sample') : null; }catch(e){ sampleFn = null; } document.getElementById('sAsk').hidden = !sampleFn; })();
+
+const EXAMPLES = ['Best use of 30,000 Atlas miles for a hotel', 'Is Marriott better than Taj?', 'What is the best way to use my MRCC points?', 'Top 3 for flights'];
+const KEYWORDS = ['virgin','marriott','hilton','accor','taj','postcard','air india','krisflyer','myntra','amazon','flipkart','miles & more','lufthansa','british','qatar','cathay','asia miles','flying blue','aeroplan','turkish','jal','etihad','united','qantas','finnair','vietnam','bill','pay with points','statement'];
+
+function buildPrompt(q){
+  const opts = liveOptions().map(o => ({id:o.id, name:o.name, cards:o.cards, kind:o.kind, rupees_per_point:+vpp(o).toFixed(3), cap:o.cap ? CAPS[o.cap].label : null, account:acctState(o)}));
+  return `You are the search engine of a personal credit card points tool for a user in India.
+Cards: pt = Amex Platinum Travel (MR points), mrcc = Amex MRCC (MR points), atlas = Axis Atlas (EDGE Miles), bonvoy = HDFC Marriott Bonvoy (Bonvoy points), neu = Tata Neu HDFC or SBI (NeuCoins), infinia = HDFC Infinia (Reward Points), millennia = HDFC Millennia (CashPoints), hdfcupi = HDFC UPI RuPay (CashPoints).
+Redemption options (JSON): ${JSON.stringify(opts)}
+User balances: ${JSON.stringify(Object.fromEntries(myCards().map(k => [k, state.balances[k] || 0])))}
+Airline and hotel programs the user holds an account with: ${JSON.stringify(heldNames())}
+Question: ${JSON.stringify(q)}
+
+Reply with only one JSON object: {"summary": string, "ids": string[], "card": "pt"|"mrcc"|"atlas"|"bonvoy"|"neu"|"infinia"|"millennia"|"hdfcupi"|null, "points": number|null}
+- summary: one or two plain sentences answering the question. Mention a yearly cap if it matters, and whether the user already has or would need to join the partner program (option "account": "have" or "needs sign-up"; null means not applicable). Do not state rupee totals; the page computes them.
+- ids: option ids from the list that answer the question, best first, at most 8, [] if nothing relates.
+- card: the card the question is about, else null.
+- points: the number of points the user states (30k = 30000, 1 lakh = 100000), else null.`;
+}
+
+function localSearch(q){
+  const s = q.toLowerCase();
+  let card = null;
+  if(/atlas|axis|edge/.test(s)) card = 'atlas';
+  else if(/infinia/.test(s)) card = 'infinia';
+  else if(/millennia/.test(s)) card = 'millennia';
+  else if(/upi rupay|rupay|upi card/.test(s)) card = 'hdfcupi';
+  else if(/tata neu|neucoin|neu card/.test(s)) card = 'neu';
+  else if(/bonvoy card|hdfc bonvoy|hdfc marriott/.test(s)) card = 'bonvoy';
+  else if(/mrcc|membership rewards credit/.test(s)) card = 'mrcc';
+  else if(/platinum|travel card/.test(s)) card = 'pt';
+  const topM = s.match(/top\s*(\d+)/); const n = topM ? Math.min(+topM[1], 8) : 5;
+  const rest = s.replace(/top\s*\d+/g, '');
+  let points = null; const pm = rest.match(/(\d[\d,]*(?:\.\d+)?)\s*(k|lakh|lac)?/);
+  if(pm){ let v = parseFloat(pm[1].replace(/,/g,'')); if(pm[2]==='k') v *= 1000; else if(pm[2]) v *= 100000; if(v >= 100) points = v; }
+  let list = liveOptions().filter(o => !card || o.cards.includes(card));
+  const hits = KEYWORDS.filter(k => s.includes(k));
+  let picked = hits.length ? list.filter(o => hits.some(k => o.name.toLowerCase().includes(k))) : [];
+  if(!picked.length){
+    const kinds = [];
+    if(/hotel|stay|resort/.test(s)) kinds.push('Hotel transfer');
+    if(/flight|fly|airline|air ticket/.test(s)) kinds.push('Airline transfer');
+    if(/voucher|shopping|gift/.test(s)) kinds.push('Voucher');
+    if(/cash|statement|credit/.test(s)) kinds.push('Fixed value');
+    picked = kinds.length ? list.filter(o => kinds.includes(o.kind)) : list;
+  }
+  picked = picked.slice().sort((a,b) => vpp(b) - vpp(a)).slice(0, n);
+  const what = picked.length ? `Showing ${picked.length} matching ${picked.length === 1 ? 'option' : 'options'}, best ₹ per point first.` : 'No option matched. Try a partner name (Marriott, Virgin), a type (hotel, flight) or a card.';
+  return {summary:what, ids:picked.map(o => o.id), card, points};
+}
+
+function sItem(o, i, res){
+  const v = vpp(o); const [g, gl] = grade(v);
+  const cards = o.cards.map(c => PROGRAMS[c].name).join(' · ');
+  let p = res.points;
+  if(p == null){
+    const cs = res.card ? o.cards.filter(c => c === res.card) : o.cards;
+    p = Math.max(0, ...cs.map(c => state.balances[c] || 0));
+  }
+  const capped = o.cap && p > CAPS[o.cap].limit;
+  if(o.cap) p = Math.min(p, CAPS[o.cap].limit);
+  const how = howLine(o);
+  const worth = p > 0 ? `<span>· ${pts(p)} pts ≈ <b class="num">${inr(p * v)}</b>${capped ? ' (capped)' : ''}</span>` : '';
+  return `<li><span class="pos">${i + 1}</span>
+    <div class="what"><strong>${esc(o.name)}</strong><span class="meta">${esc(cards)} · ${o.kind}${o.cap ? ' · cap ' + CAPS[o.cap].label : ''}</span></div>
+    <div class="vpp"><div class="big num">₹${fmt(v)}</div><div class="per">per point</div></div>
+    <div class="foot"><span class="pill ${g}">${gl}</span><span>${how}</span>${chainTag(o)}${acctTag(o)}${worth}</div></li>`;
+}
+
+function showResult(res, mode, note){
+  const items = res.ids.map(id => liveOptions().find(o => o.id === id)).filter(Boolean);
+  const badge = mode === 'claude' ? 'Understood by Claude' : mode === 'manual' ? 'Answer pasted from Claude' : 'Keyword match' + (note ? ' · ' + note : '');
+  document.getElementById('sOut').innerHTML = `<div class="sres">
+    <p>${esc(res.summary || '')}</p>
+    ${items.length ? `<ol class="rank">${items.map((o, i) => sItem(o, i, res)).join('')}</ol>` : ''}
+    <span class="badge">${badge}. Values come from Settings → Rates.</span></div>`;
+}
+
+function cleanClaude(r){
+  const ids = Array.isArray(r && r.ids) ? [...new Set(r.ids.map(String))].filter(id => liveOptions().some(o => o.id === id)).slice(0, 8) : [];
+  const card = r && PROGRAMS[r.card] ? r.card : null;
+  const points = r && typeof r.points === 'number' && r.points > 0 ? r.points : null;
+  return {summary: String((r && r.summary) || '').slice(0, 400), ids, card, points};
+}
+const FALLBACK_NOTE = {not_granted:'Claude access was declined', rate_limited:'too many requests, try later', session_expired:'sign in again to use Claude', invalid_json:'Claude reply was unclear', sampling_disabled:'Claude is not available'};
+
+async function runSearch(q, useClaude){
+  const out = document.getElementById('sOut'), go = document.getElementById('sGo'), stop = document.getElementById('sStop');
+  let mode = 'keyword', note = sampleFn ? 'Instant answer from this page. Press Ask Claude for a smarter one' : 'plain keyword search in this copy', res = null;
+  if(sampleFn && useClaude){
+    sCtl = new AbortController();
+    go.disabled = true; stop.hidden = false;
+    out.innerHTML = '<div class="sres"><p class="small">Thinking…</p></div>';
+    try{
+      res = cleanClaude(await sampleFn.json(buildPrompt(q), {modelTier:'quick', signal:sCtl.signal}));
+      mode = 'claude';
+    }catch(e){
+      if(e && e.code === 'cancelled'){ out.innerHTML = ''; go.disabled = false; stop.hidden = true; return; }
+      note = FALLBACK_NOTE[e && e.code] || 'Claude could not answer';
+    }
+    go.disabled = false; stop.hidden = true; sCtl = null;
+  }
+  if(!res) res = localSearch(q);
+  showResult(res, mode, note);
+  audit('SEARCH', 'Smart search', mode === 'claude' ? 'Query (Claude)' : 'Query (keyword)', '—', q.slice(0, 120));
+  renderAudit();
+}
+document.getElementById('sForm').addEventListener('submit', e => { e.preventDefault(); const q = document.getElementById('sQ').value.trim(); if(q) runSearch(q); });
+document.getElementById('sStop').onclick = () => { if(sCtl) sCtl.abort(); };
+document.getElementById('sAsk').onclick = () => { const q = document.getElementById('sQ').value.trim(); if(q) runSearch(q, true); else toast('Type your question first'); };
+document.getElementById('sEx').innerHTML = EXAMPLES.map(x => `<button type="button" class="chip" data-q="${esc(x)}">${esc(x)}</button>`).join('');
+document.querySelectorAll('#sEx .chip').forEach(b => b.onclick = () => { document.getElementById('sQ').value = b.dataset.q; runSearch(b.dataset.q); });
+
+if(!state.audit.length){ audit('CREATE', 'Rate table', 'All rates', '—', 'Loaded researched values (20 Oct 2026)'); }
+renderDeals(); renderRates(); refreshAll(); renderUpdateStatus(); showView('home');
+</script>
+</body>
+</html>
