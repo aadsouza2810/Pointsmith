@@ -63,6 +63,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .rank li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px 12px;align-items:center}
 .rank .pos{font:600 1rem var(--f-num);color:var(--muted)}
 .rank .what{min-width:0}
+.tbl td .cv{min-width:0;flex:1 1 0;overflow-wrap:normal;word-break:normal}
+@media (max-width:640px){.tbl td .cv{text-align:right}.tbl td:first-child .cv{text-align:left}}
 .rank .what strong{display:block;font-weight:600}
 .rank .meta{font-size:.8rem;color:var(--muted)}
 .rank .vpp{text-align:right}
@@ -1134,9 +1136,9 @@ function renderRank(){
   tb.innerHTML = rows.length ? rows.map(r => {
     const a = r.a, b = r.b, srcTxt = r.mine != null ? 'Your price' : r.ref ? esc(r.ref.note) : '';
     const srcLink = r.mine == null && r.ref ? ' <a href="' + esc(r.ref.src[1]) + '" target="_blank" rel="noopener" style="color:var(--accent)">' + esc(r.ref.src[0]) + '</a>' : '';
-    return `<tr><td style="min-width:150px">${esc(a.route)}<div class="small">${esc(PARTNER_NAME[a.partner])}${r.h ? ' · per night' : ' · ' + esc(a.cabin) + ', one way'}${a.tier ? ' · ' + esc(a.tier) : ''}</div></td>
-      <td class="small">${esc(PROGRAMS[b.card].name)}: <b class="num">${pts(b.need)}</b> ${esc(PROGRAMS[b.card].unit)}${b.o.chain ? ' via ' + esc(PARTNER_NAME[b.o.via]) : ''}</td>
-      <td class="r"><input class="num rk" data-key="${esc(r.key)}" inputmode="numeric" placeholder="add" value="${r.cash != null ? pts(r.cash) : ''}" ${CAN_EDIT ? '' : 'disabled'} aria-label="Typical cash price for ${esc(a.route)}" style="width:96px"><div class="small">${srcTxt}${srcLink}</div></td>
+    return `<tr><td style="min-width:150px"><div class="cv">${esc(a.route)}<div class="small">${esc(PARTNER_NAME[a.partner])}${r.h ? ' · per night' : ' · ' + esc(a.cabin) + ', one way'}${a.tier ? ' · ' + esc(a.tier) : ''}</div></div></td>
+      <td class="small"><div class="cv">${esc(PROGRAMS[b.card].name)}: <b class="num">${pts(b.need)}</b> ${esc(PROGRAMS[b.card].unit)}${b.o.chain ? ' via ' + esc(PARTNER_NAME[b.o.via]) : ''}</div></td>
+      <td class="r"><div class="cv"><input class="num rk" data-key="${esc(r.key)}" inputmode="numeric" placeholder="add" value="${r.cash != null ? pts(r.cash) : ''}" ${CAN_EDIT ? '' : 'disabled'} aria-label="Typical cash price for ${esc(a.route)}" style="width:96px"><div class="small">${srcTxt}${srcLink}</div></div></td>
       <td class="r num">${r.v == null ? '—' : '₹' + fmt(r.v)}</td>
       <td><span class="pill ${r.call[0]}">${esc(r.call[1])}</span></td></tr>`;
   }).join('') : '<tr><td colspan="5" class="small">No award price on file is reachable from the cards you hold.</td></tr>';
