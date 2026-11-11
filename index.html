@@ -1017,13 +1017,17 @@ const FLIGHT_CABINS = CABINS.filter(c => c !== 'Standard room');
 // awards from an update pack replace the flight defaults; the hotel defaults stay unless the pack carries hotel prices
 const baseAwards = () => { const b = Array.isArray(state.packAwards) ? state.packAwards : DEFAULT_AWARDS; return b.concat(b.some(a => PARTNER_TYPE[a.partner] === 'Hotel') ? [] : DEFAULT_HOTEL_AWARDS); };
 const allAwards = () => baseAwards().concat(state.awards);
+/* premium first: business and first class flights, and the highest hotel category of each chain */
+const routeLevel = route => { const m = /Category (\d+)/.exec(route || ''); return m ? +m[1] : 0; };
+const topLevelOf = partner => allAwards().filter(a => a.partner === partner).reduce((m, a) => Math.max(m, routeLevel(a.route)), 0);
+const isPremium = a => PARTNER_TYPE[a.partner] === 'Hotel' ? routeLevel(a.route) > 0 && routeLevel(a.route) === topLevelOf(a.partner) : a.cabin === 'Business' || a.cabin === 'First';
 const pMode = () => document.getElementById('pMode').value;
-const awardRoutes = mode => [...new Set(allAwards().filter(a => !mode || (PARTNER_TYPE[a.partner] === 'Hotel') === (mode === 'hotel')).map(a => a.route))];
+const awardRoutes = mode => { const l = [...new Set(allAwards().filter(a => !mode || (PARTNER_TYPE[a.partner] === 'Hotel') === (mode === 'hotel')).map(a => a.route))]; return mode === 'hotel' ? l.sort((x, y) => routeLevel(y) - routeLevel(x)) : l; };
 function renderCabinSelect(){
   const route = document.getElementById('pRoute').value, cs = document.getElementById('pCabin'), prev = cs.value;
   const have = (pMode() === 'hotel' ? ['Standard room'] : FLIGHT_CABINS).filter(c => allAwards().some(a => a.route === route && a.cabin === c));
   cs.innerHTML = have.map(c => `<option>${c}</option>`).join('');
-  if(prev && have.includes(prev)) cs.value = prev;
+  if(prev && have.includes(prev)) cs.value = prev; else if(have.includes('Business')) cs.value = 'Business';
 }
 function renderPlannerSelects(){
   const rs = document.getElementById('pRoute'), prev = rs.value, list = awardRoutes(pMode());
@@ -1130,9 +1134,9 @@ function renderRank(){
     else if(fl && v < floorV) call = ['poor', 'Pay cash'];
     else if(typ && v >= typ) call = ['good', 'Use points'];
     else call = ['fair', 'Marginal'];
-    rows.push({a, b, key, ref, mine, cash, v, call, h, thr:b.need * floorV});
+    rows.push({a, b, key, ref, mine, cash, v, call, h, thr:b.need * floorV, prem:isPremium(a) ? 0 : 1});
   });
-  rows.sort((x, y) => (x.b.over - y.b.over) || (y.v != null) - (x.v != null) || (y.v != null ? y.v - x.v : x.thr - y.thr));
+  rows.sort((x, y) => (x.b.over - y.b.over) || (x.prem - y.prem) || (y.v != null) - (x.v != null) || (y.v != null ? y.v - x.v : x.thr - y.thr));
   tb.innerHTML = rows.length ? rows.map(r => {
     const a = r.a, b = r.b, srcTxt = r.mine != null ? 'Your price' : r.ref ? esc(r.ref.note) : '';
     const srcLink = r.mine == null && r.ref ? ' <a href="' + esc(r.ref.src[1]) + '" target="_blank" rel="noopener" style="color:var(--accent)">' + esc(r.ref.src[0]) + '</a>' : '';
@@ -1252,7 +1256,7 @@ function tripPlan(t){
   const addPart = (kind, routes, cabin, mult, hotel, cash) => {
     let res = [];
     routes.forEach(r => { if(allAwards().some(a => a.route === r && a.cabin === cabin)) planResults(r, cabin, mult, hotel).forEach(x => res.push(Object.assign(x, {routeName:r}))); });
-    res.sort((x, y) => (y.ok - x.ok) || (x.need - y.need));
+    res.sort((x, y) => hotel ? (routeLevel(y.routeName) - routeLevel(x.routeName)) || (y.ok - x.ok) || (x.need - y.need) : (y.ok - x.ok) || (x.need - y.need));
     out.parts.push({kind, routes, res:res.slice(0, 2), cash, hotel, mult});
     return res;
   };
@@ -1352,7 +1356,7 @@ function openTripForm(t){
   editTrip = t || null;
   const f = document.getElementById('tForm'); f.hidden = false;
   document.getElementById('tCabin').innerHTML = FLIGHT_CABINS.map(c => `<option>${c}</option>`).join('');
-  const v = t || {dest:'', start:'', end:'', pax:1, rooms:1, cabin:'Economy', flights:true, hotel:true, way:2, cashF:null, cashH:null};
+  const v = t || {dest:'', start:'', end:'', pax:1, rooms:1, cabin:'Business', flights:true, hotel:true, way:2, cashF:null, cashH:null};
   document.getElementById('tDest').value = v.dest; document.getElementById('tStart').value = v.start; document.getElementById('tEnd').value = v.end;
   document.getElementById('tPax').value = v.pax; document.getElementById('tRooms').value = v.rooms; document.getElementById('tCabin').value = v.cabin; document.getElementById('tWay').value = String(v.way);
   document.getElementById('tCashF').value = v.cashF || ''; document.getElementById('tCashH').value = v.cashH || '';
