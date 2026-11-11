@@ -522,7 +522,7 @@
     },
     {
       "id": "upi-statement",
-      "name": "Statement credit (₹0.25 per CashPoint; minimum 2,000 CashPoints, which is ₹500)",
+      "name": "Statement credit (₹0.25 per CashPoint; HDFC gives different minimums, confirm when you redeem)",
       "fixed": 0.25
     },
     {
